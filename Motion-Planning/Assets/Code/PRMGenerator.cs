@@ -2,30 +2,37 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public class PRMGenerator : MonoBehaviour {
 
 	// Start Location. Set in the Unity Editor.
-	public Transform StartLoc;
+	[Header("Refs")]
+	[SerializeField] private Transform StartLoc;
 	
 	// End Location. Set in the Unity Editor.
-	public Transform EndLoc;
+	[SerializeField] private Transform EndLoc;
 	
 	// Agent Prefab. Set in the Unity Editor.
-	public GameObject AgentPrefab;
+	[SerializeField] private GameObject AgentPrefab;
 	private float _agentRadius;
 
 	// Simulation bounds. Set in Unity Editor.
-	public float Left;
-	public float Right;
-	public float Top;
-	public float Bottom;
+	[Header("Bounds")]
+	[SerializeField] private float Left;
+	[SerializeField] private float Right;
+	[SerializeField] private float Top;
+	[SerializeField] private float Bottom;
 
 	// Number of points to add to the roadmap. Set in Unity Editor.
-	public int NumPoints;
+	[Header("PRM Config")]
+	[SerializeField] private int NumPoints = 50;
+	
+	// Max connection distance. Set in Unity Editor
+	[SerializeField] private int MaxPRMConnectionDistance = 10;
 
-	public Boolean _drawLines = true;
+	private Boolean _drawLines = true;
 	
 	private List<Vector2> _prmPoints = new List<Vector2>();
 	private Boolean[,] _prmEdges;
@@ -34,6 +41,7 @@ public class PRMGenerator : MonoBehaviour {
 	
 	private void Start ()
 	{
+		// Cache array of obstacles.
 		_obstacles = (from obs in GameObject.FindGameObjectsWithTag("Obstacles") select obs.GetComponent<Collider>()).ToArray();
 		_agentRadius = AgentPrefab.transform.localScale.x;
 		
@@ -62,12 +70,18 @@ public class PRMGenerator : MonoBehaviour {
 			for (var j = i + 1; j < len; j++)
 			{
 				Vector2 dir = _prmPoints[j] - _prmPoints[i];
+				// Ignore pairs that are too far away
+				if (dir.sqrMagnitude > MaxPRMConnectionDistance * MaxPRMConnectionDistance) continue;
+				
+				// Ignore pairs with obstacles between them.
 				RaycastHit hit;
-				if (!Physics.SphereCast(_prmPoints[i], _agentRadius, dir, out hit, dir.magnitude,
+				if (Physics.SphereCast(_prmPoints[i], _agentRadius, dir, out hit, dir.magnitude,
 					LayerMask.GetMask("Obstacles")))
 				{
-					_prmEdges[i, j] = _prmEdges[j, i] = true;
+					continue;
 				}
+				
+				_prmEdges[i, j] = _prmEdges[j, i] = true;
 			}
 		}
 	}
@@ -84,12 +98,14 @@ public class PRMGenerator : MonoBehaviour {
 	{
 		if (!Application.isPlaying) return;
 		
+		// Draw Points
 		Gizmos.color = Color.black;
 		foreach (Vector2 point in _prmPoints)
 		{
 			Gizmos.DrawCube(point, Vector3.one * .1f);
 		}
 
+		// Draw Lines
 		if (_drawLines)
 		{
 			Gizmos.color = new Color(0, 0, 0, .2f);
