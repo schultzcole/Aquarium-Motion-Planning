@@ -72,6 +72,14 @@ public class PRMGenerator : MonoBehaviour {
 		}
 	}
 
+	private void Update()
+	{
+		if (Input.GetKeyDown(KeyCode.Tab))
+		{
+			_drawLines = !_drawLines;
+		}
+	}
+
 	private void OnDrawGizmos()
 	{
 		if (!Application.isPlaying) return;

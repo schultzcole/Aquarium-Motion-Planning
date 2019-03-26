@@ -153,7 +153,7 @@ MonoBehaviour:
   Right: 10
   Top: 10
   Bottom: -10
-  NumPoints: 100
+  NumPoints: 10
   _drawLines: 1
 --- !u!4 &448074562
 Transform:
