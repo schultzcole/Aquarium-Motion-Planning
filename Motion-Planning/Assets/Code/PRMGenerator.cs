@@ -35,7 +35,7 @@ public class PRMGenerator : MonoBehaviour {
 	private Boolean _drawLines = true;
 	
 	private List<Vector2> _prmPoints = new List<Vector2>();
-	private Boolean[,] _prmEdges;
+	private Single[,] _prmEdges;
 
 	private Collider[] _obstacles;
 	
@@ -63,24 +63,27 @@ public class PRMGenerator : MonoBehaviour {
 		_prmPoints.Add(EndLoc.position);
 
 		var len = _prmPoints.Count;
-		_prmEdges = new Boolean[len,len];
+		_prmEdges = new Single[len,len];
 		for (var i = 0; i < len; i++)
 		{
 			for (var j = i + 1; j < len; j++)
 			{
+				_prmEdges[i, j] = Single.NegativeInfinity;
+				
 				Vector2 dir = _prmPoints[j] - _prmPoints[i];
+				var dist = dir.magnitude;
 				// Ignore pairs that are too far away
-				if (dir.sqrMagnitude > MaxPRMConnectionDistance * MaxPRMConnectionDistance) continue;
+				if (dist > MaxPRMConnectionDistance) continue;
 				
 				// Ignore pairs with obstacles between them.
 				RaycastHit hit;
-				if (Physics.SphereCast(_prmPoints[i], _agentRadius, dir, out hit, dir.magnitude,
+				if (Physics.SphereCast(_prmPoints[i], _agentRadius, dir, out hit, dist,
 					LayerMask.GetMask("Obstacles")))
 				{
 					continue;
 				}
 				
-				_prmEdges[i, j] = _prmEdges[j, i] = true;
+				_prmEdges[i, j] = _prmEdges[j, i] = dist;
 			}
 		}
 	}
@@ -112,7 +115,7 @@ public class PRMGenerator : MonoBehaviour {
 			{
 				for (var j = i + 1; j < _prmEdges.GetLength(1); j++)
 				{
-					if (_prmEdges[i, j])
+					if (_prmEdges[i, j] > 0)
 					{
 						Gizmos.DrawLine(_prmPoints[i], _prmPoints[j]);
 					}
