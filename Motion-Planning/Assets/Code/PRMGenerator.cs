@@ -46,6 +46,7 @@ public class PRMGenerator : MonoBehaviour {
 		_agentRadius = AgentPrefab.transform.localScale.x;
 		
 		// Spawn PRM points
+		_prmPoints.Add(StartLoc.position);
 		for (var i = 0; i < NumPoints; i++)
 		{
 			var x = Random.Range(Left, Right);
@@ -59,8 +60,6 @@ public class PRMGenerator : MonoBehaviour {
 				_prmPoints.Add(loc);
 			}
 		}
-		
-		_prmPoints.Add(StartLoc.position);
 		_prmPoints.Add(EndLoc.position);
 
 		var len = _prmPoints.Count;
