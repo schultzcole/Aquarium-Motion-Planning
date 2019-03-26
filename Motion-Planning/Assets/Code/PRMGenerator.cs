@@ -123,12 +123,16 @@ public class PRMGenerator : MonoBehaviour {
 				if (dist > _maxPRMConnectionDistance) continue;
 
 				// Ignore pairs with obstacles between them.
+				// Samples a sphere collision at intervals of half of the agent's radius.
 				bool isValid = true;
-				for (float k = 0; k < dist; k += _agentRadius / 2)
+				for (float k = 0; k <= dist; k += _agentRadius / 2)
 				{
 					isValid &= !Physics.CheckSphere(_prmPoints[i] + dir.normalized * k, _agentRadius);
 					if (!isValid) break;
 				}
+				
+				// One last check at the end point in case the distance is not divisible by agentRadius / 2
+				isValid &= !Physics.CheckSphere(_prmPoints[j], _agentRadius);
 
 				if (isValid)
 				{

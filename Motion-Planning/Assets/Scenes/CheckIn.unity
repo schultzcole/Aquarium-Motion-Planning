@@ -265,7 +265,7 @@ Transform:
   m_GameObject: {fileID: 441646925}
   m_LocalRotation: {x: -0, y: -0, z: -0.25761202, w: 0.9662485}
   m_LocalPosition: {x: 3.18, y: 6.12, z: 0}
-  m_LocalScale: {x: 3.432, y: 3.984, z: 1}
+  m_LocalScale: {x: 3.432, y: 3.984, z: 0.09}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 9
@@ -305,8 +305,8 @@ MonoBehaviour:
   _right: 10
   _top: 10
   _bottom: -10
-  _numPointAttempts: 500
-  _maxPRMConnectionDistance: 4
+  _numPointAttempts: 1000
+  _maxPRMConnectionDistance: 5
   _minPRMPointDistance: 0.5
 --- !u!4 &448074562
 Transform:
