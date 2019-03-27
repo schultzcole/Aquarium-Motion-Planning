@@ -390,7 +390,7 @@ MonoBehaviour:
   _right: 10
   _top: 10
   _bottom: -10
-  _numPointAttempts: 500
+  _numPointAttempts: 3000
   _maxPRMConnectionDistance: 5
   _minPRMPointDistance: 0.5
 --- !u!4 &448074562

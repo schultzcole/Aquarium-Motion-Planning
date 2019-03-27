@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -6,6 +7,7 @@ using Code;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Debug = UnityEngine.Debug;
+using Object = System.Object;
 using Random = UnityEngine.Random;
 
 public class PRMGenerator : MonoBehaviour {
@@ -29,6 +31,7 @@ public class PRMGenerator : MonoBehaviour {
 	[SerializeField] private float _top;
 	[SerializeField] private float _bottom;
 
+	// Bounds adjusted for agent radius.
 	private float _safeLeft;
 	private float _safeRight;
 	private float _safeTop;
@@ -42,14 +45,17 @@ public class PRMGenerator : MonoBehaviour {
 	[SerializeField] private float _maxPRMConnectionDistance = 10;
 	[SerializeField] private float _minPRMPointDistance = .05f;
 
+	// Whether edges should be drawn.
 	private Boolean _drawLines = true;
-	private Vector2[] finalPath;
 	
 	private List<Vector3> _prmPoints = new List<Vector3>();
 	private Single[,] _prmEdges;
+	private int _numEdges;
 
 	private Collider[] _obstacles;
 	
+	private Vector2[] _finalPath;
+
 	private void Start ()
 	{
 		// Cache array of obstacles.
@@ -70,14 +76,14 @@ public class PRMGenerator : MonoBehaviour {
 		sw.Start();
 		SpawnPRMPoints();
 		sw.Stop();
-		Debug.Log("Spawning PRM points took: " + sw.ElapsedMilliseconds +"ms");
+		Debug.Log("Spawning " + _prmPoints.Count + " PRM points took: " + sw.ElapsedMilliseconds +"ms");
 		
 		sw.Reset();
 		sw.Start();
 		ConnectPRMEdges();
 		sw.Stop();
 		
-		Debug.Log("Connecting PRM edges took: " + sw.ElapsedMilliseconds +"ms");
+		Debug.Log("Connecting " + _numEdges + " PRM edges took: " + sw.ElapsedMilliseconds +"ms");
 	}
 
 
@@ -153,6 +159,7 @@ public class PRMGenerator : MonoBehaviour {
 				if (Physics.CheckCapsule(_prmPoints[i], _prmPoints[j], _agentRadius)) continue;
 				
 				_prmEdges[i, j] = _prmEdges[j, i] = dist;
+				_numEdges++;
 			}
 		}
 		
@@ -168,7 +175,7 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
-			finalPath = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
+			_finalPath = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
 		}
 	}
 
@@ -200,12 +207,12 @@ public class PRMGenerator : MonoBehaviour {
 		}
 		
 		// Draw Path
-		if (finalPath != null)
+		if (_finalPath != null)
 		{
 			Gizmos.color = Color.green;
-			for (int i = 0; i < finalPath.Length - 1; i++)
+			for (int i = 0; i < _finalPath.Length - 1; i++)
 			{
-				Gizmos.DrawLine(finalPath[i], finalPath[i+1]);
+				Gizmos.DrawLine(_finalPath[i], _finalPath[i+1]);
 			}
 		}
 	}
