@@ -29,6 +29,11 @@ public class PRMGenerator : MonoBehaviour {
 	[SerializeField] private float _top;
 	[SerializeField] private float _bottom;
 
+	private float _safeLeft;
+	private float _safeRight;
+	private float _safeTop;
+	private float _safeBottom;
+
 	// Number of points to add to the roadmap. Set in Unity Editor.
 	[Header("PRM Config")]
 	[SerializeField] private int _numPointAttempts = 50;
@@ -38,7 +43,7 @@ public class PRMGenerator : MonoBehaviour {
 	[SerializeField] private float _minPRMPointDistance = .05f;
 
 	private Boolean _drawLines = true;
-	private Vector2[] finalPath = null;
+	private Vector2[] finalPath;
 	
 	private List<Vector3> _prmPoints = new List<Vector3>();
 	private Single[,] _prmEdges;
@@ -53,6 +58,11 @@ public class PRMGenerator : MonoBehaviour {
 		_agentGO = Instantiate(_agentPrefab);
 		_agentGO.transform.position = _startLoc.position;
 		_agentRadius = _agentGO.transform.localScale.x / 2;
+
+		_safeLeft = _left + _agentRadius;
+		_safeRight = _right - _agentRadius;
+		_safeTop = _top - _agentRadius;
+		_safeBottom = _bottom + _agentRadius;
 		
 		Random.InitState(1);
 
@@ -85,8 +95,8 @@ public class PRMGenerator : MonoBehaviour {
 			int placeAttempts = 0;
 			do
 			{
-				float x = Random.Range(_left + _agentRadius, _right - _agentRadius);
-				float y = Random.Range(_bottom + _agentRadius, _top - _agentRadius);
+				float x = Random.Range(_safeLeft, _safeRight);
+				float y = Random.Range(_safeBottom, _safeTop);
 
 				loc = new Vector3(x, y);
 			} while (_prmPoints.Any(pt => (pt - loc).sqrMagnitude < _minPRMPointDistance * _minPRMPointDistance) && ++placeAttempts < 15);
@@ -111,7 +121,7 @@ public class PRMGenerator : MonoBehaviour {
 				}
 			}
 
-			if (loc.x < _right && loc.x > _left && loc.y > _bottom && loc.y < _top && isValid)
+			if (loc.x < _safeRight && loc.x > _safeLeft && loc.y > _safeBottom && loc.y < _safeTop && isValid)
 			{
 				_prmPoints.Insert(1, loc);
 			}
@@ -133,28 +143,16 @@ public class PRMGenerator : MonoBehaviour {
 			{
 				_prmEdges[i, j] = _prmEdges[j, i] = Single.NegativeInfinity;
 
-				Vector3 dir = _prmPoints[j] - _prmPoints[i];
 				float dist = Vector3.Distance(_prmPoints[i], _prmPoints[j]);
 				
 				// Ignore pairs that are too far away
 				if (dist > _maxPRMConnectionDistance) continue;
 
 				// Ignore pairs with obstacles between them.
-				// Samples a sphere collision at intervals of half of the agent's radius.
-				bool isValidEdge = true;
-				for (float k = 0; k <= dist; k += _agentRadius / 2)
-				{
-					isValidEdge &= !Physics.CheckSphere(_prmPoints[i] + dir.normalized * k, _agentRadius);
-					if (!isValidEdge) break;
-				}
+				// A capsule check is the fastest way I've found to do this that is accurate.
+				if (Physics.CheckCapsule(_prmPoints[i], _prmPoints[j], _agentRadius)) continue;
 				
-				// One last check at the end point in case the distance is not divisible by agentRadius / 2
-				isValidEdge &= !Physics.CheckSphere(_prmPoints[j], _agentRadius);
-
-				if (isValidEdge)
-				{
-					_prmEdges[i, j] = _prmEdges[j, i] = dist;
-				}
+				_prmEdges[i, j] = _prmEdges[j, i] = dist;
 			}
 		}
 		
