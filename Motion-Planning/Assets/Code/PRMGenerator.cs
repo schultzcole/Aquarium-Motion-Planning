@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Code;
 using UnityEngine;
 using UnityEngine.Serialization;
+using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
 public class PRMGenerator : MonoBehaviour {
@@ -35,6 +38,7 @@ public class PRMGenerator : MonoBehaviour {
 	[SerializeField] private float _minPRMPointDistance = .05f;
 
 	private Boolean _drawLines = true;
+	private Vector2[] finalPath = null;
 	
 	private List<Vector3> _prmPoints = new List<Vector3>();
 	private Single[,] _prmEdges;
@@ -50,9 +54,20 @@ public class PRMGenerator : MonoBehaviour {
 		_agentGO.transform.position = _startLoc.position;
 		_agentRadius = _agentGO.transform.localScale.x / 2;
 		
+		Random.InitState(1);
+
+		Stopwatch sw = new Stopwatch();
+		sw.Start();
 		SpawnPRMPoints();
-		Debug.Log(_prmPoints.Count);
+		sw.Stop();
+		Debug.Log("Spawning PRM points took: " + sw.ElapsedMilliseconds +"ms");
+		
+		sw.Reset();
+		sw.Start();
 		ConnectPRMEdges();
+		sw.Stop();
+		
+		Debug.Log("Connecting PRM edges took: " + sw.ElapsedMilliseconds +"ms");
 	}
 
 
@@ -62,22 +77,23 @@ public class PRMGenerator : MonoBehaviour {
 	private void SpawnPRMPoints()
 	{
 		_prmPoints.Add(_startLoc.position);
+		_prmPoints.Add(_endLoc.position);
 		Collider agentCollider = _agentGO.GetComponent<Collider>();
 		for (var i = 0; i < _numPointAttempts; i++)
 		{
-			float x = Random.Range(_left, _right);
-			float y = Random.Range(_bottom, _top);
-
-			Vector3 loc = new Vector3(x, y);
-
-			if (_prmPoints.Any(pt => (pt - loc).sqrMagnitude < _minPRMPointDistance * _minPRMPointDistance))
+			Vector3 loc;
+			int placeAttempts = 0;
+			do
 			{
-				continue;
-			}
+				float x = Random.Range(_left + _agentRadius, _right - _agentRadius);
+				float y = Random.Range(_bottom + _agentRadius, _top - _agentRadius);
+
+				loc = new Vector3(x, y);
+			} while (_prmPoints.Any(pt => (pt - loc).sqrMagnitude < _minPRMPointDistance * _minPRMPointDistance) && ++placeAttempts < 15);
 
 			bool isValid = false;
-			int attempts = 0;
-			while (!isValid && attempts++ < 5)
+			int relocAttempts = 0;
+			while (!isValid && relocAttempts++ < 5)
 			{
 				isValid = true;
 				foreach (var obs in _obstacles)
@@ -97,10 +113,9 @@ public class PRMGenerator : MonoBehaviour {
 
 			if (loc.x < _right && loc.x > _left && loc.y > _bottom && loc.y < _top && isValid)
 			{
-				_prmPoints.Add(loc);
+				_prmPoints.Insert(1, loc);
 			}
 		}
-		_prmPoints.Add(_endLoc.position);
 	}
 
 	/// <summary>
@@ -109,32 +124,34 @@ public class PRMGenerator : MonoBehaviour {
 	private void ConnectPRMEdges()
 	{
 		_agentGO.GetComponent<Collider>().enabled = false;
+		
 		int len = _prmPoints.Count;
 		_prmEdges = new Single[len, len];
 		for (var i = 0; i < len; i++)
 		{
 			for (var j = i + 1; j < len; j++)
 			{
-				_prmEdges[i, j] = Single.NegativeInfinity;
+				_prmEdges[i, j] = _prmEdges[j, i] = Single.NegativeInfinity;
 
 				Vector3 dir = _prmPoints[j] - _prmPoints[i];
-				float dist = dir.magnitude;
+				float dist = Vector3.Distance(_prmPoints[i], _prmPoints[j]);
+				
 				// Ignore pairs that are too far away
 				if (dist > _maxPRMConnectionDistance) continue;
 
 				// Ignore pairs with obstacles between them.
 				// Samples a sphere collision at intervals of half of the agent's radius.
-				bool isValid = true;
+				bool isValidEdge = true;
 				for (float k = 0; k <= dist; k += _agentRadius / 2)
 				{
-					isValid &= !Physics.CheckSphere(_prmPoints[i] + dir.normalized * k, _agentRadius);
-					if (!isValid) break;
+					isValidEdge &= !Physics.CheckSphere(_prmPoints[i] + dir.normalized * k, _agentRadius);
+					if (!isValidEdge) break;
 				}
 				
 				// One last check at the end point in case the distance is not divisible by agentRadius / 2
-				isValid &= !Physics.CheckSphere(_prmPoints[j], _agentRadius);
+				isValidEdge &= !Physics.CheckSphere(_prmPoints[j], _agentRadius);
 
-				if (isValid)
+				if (isValidEdge)
 				{
 					_prmEdges[i, j] = _prmEdges[j, i] = dist;
 				}
@@ -149,6 +166,11 @@ public class PRMGenerator : MonoBehaviour {
 		if (Input.GetKeyDown(KeyCode.Tab))
 		{
 			_drawLines = !_drawLines;
+		}
+
+		if (Input.GetKeyDown(KeyCode.Space))
+		{
+			finalPath = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
 		}
 	}
 
@@ -166,7 +188,7 @@ public class PRMGenerator : MonoBehaviour {
 		// Draw Lines
 		if (_drawLines && _prmEdges != null)
 		{
-			Gizmos.color = new Color(0, 0, 0, .2f);
+			Gizmos.color = new Color(0, 0, 0, .1f);
 			for (var i = 0; i < _prmEdges.GetLength(0); i++)
 			{
 				for (var j = i + 1; j < _prmEdges.GetLength(1); j++)
@@ -176,6 +198,16 @@ public class PRMGenerator : MonoBehaviour {
 						Gizmos.DrawLine(_prmPoints[i], _prmPoints[j]);
 					}
 				}
+			}
+		}
+		
+		// Draw Path
+		if (finalPath != null)
+		{
+			Gizmos.color = Color.green;
+			for (int i = 0; i < finalPath.Length - 1; i++)
+			{
+				Gizmos.DrawLine(finalPath[i], finalPath[i+1]);
 			}
 		}
 	}
