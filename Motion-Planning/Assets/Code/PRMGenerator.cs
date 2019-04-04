@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using Code;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -22,6 +23,7 @@ public class PRMGenerator : MonoBehaviour {
 	// Agent Prefab. Set in the Unity Editor.
 	[SerializeField] private GameObject _agentPrefab;
 	private GameObject _agentGO;
+	private Agent _agent;
 	private float _agentRadius;
 
 	// Simulation bounds. Set in Unity Editor.
@@ -62,6 +64,7 @@ public class PRMGenerator : MonoBehaviour {
 		_obstacles = (from obs in GameObject.FindGameObjectsWithTag("Obstacles") select obs.GetComponent<Collider>()).ToArray();
 
 		_agentGO = Instantiate(_agentPrefab);
+		_agent = _agentGO.GetComponent<Agent>();
 		_agentGO.transform.position = _startLoc.position;
 		_agentRadius = _agentGO.transform.localScale.x / 2;
 
@@ -70,7 +73,7 @@ public class PRMGenerator : MonoBehaviour {
 		_safeTop = _top - _agentRadius;
 		_safeBottom = _bottom + _agentRadius;
 		
-		Random.InitState(1);
+//		Random.InitState(1);
 
 		Stopwatch sw = new Stopwatch();
 		sw.Start();
@@ -97,15 +100,12 @@ public class PRMGenerator : MonoBehaviour {
 		Collider agentCollider = _agentGO.GetComponent<Collider>();
 		for (var i = 0; i < _numPointAttempts; i++)
 		{
-			Vector3 loc;
-			int placeAttempts = 0;
-			do
-			{
-				float x = Random.Range(_safeLeft, _safeRight);
-				float y = Random.Range(_safeBottom, _safeTop);
+			float x = Random.Range(_safeLeft, _safeRight);
+			float y = Random.Range(_safeBottom, _safeTop);
 
-				loc = new Vector3(x, y);
-			} while (_prmPoints.Any(pt => (pt - loc).sqrMagnitude < _minPRMPointDistance * _minPRMPointDistance) && ++placeAttempts < 15);
+			Vector3 loc = new Vector3(x, y);
+			
+			if(_prmPoints.Any(pt => (pt - loc).sqrMagnitude < _minPRMPointDistance * _minPRMPointDistance)) continue;
 
 			bool isValid = false;
 			int relocAttempts = 0;
@@ -176,7 +176,7 @@ public class PRMGenerator : MonoBehaviour {
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
 			_finalPath = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
-			_agentGO.GetComponent<Agent>().Init(_finalPath);
+			_agent.Init(_finalPath);
 		}
 	}
 

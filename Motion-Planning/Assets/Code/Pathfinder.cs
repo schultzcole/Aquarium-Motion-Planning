@@ -9,6 +9,8 @@ namespace Code
 {
 	public static class Pathfinder
 	{
+		private const Single HWeight = 3.0f;
+
 		/// <summary>
 		/// Finds a path from the start point to the end point.
 		/// ASSUMES THAT THE FIRST POINT IN THE points ARRAY IS THE START
@@ -61,7 +63,7 @@ namespace Code
 						{
 							Position = other,
 							Depth = curr.Depth + toOther,
-							Dist = Vector2.Distance(other, endLoc) * 1.0f,
+							Dist = Vector2.Distance(other, endLoc) * HWeight,
 							Parent = curr,
 							Index = i
 						});
