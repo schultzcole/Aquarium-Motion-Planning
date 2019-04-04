@@ -41,11 +41,11 @@ public class PRMGenerator : MonoBehaviour {
 
 	// Number of points to add to the roadmap. Set in Unity Editor.
 	[Header("PRM Config")]
-	[SerializeField] private int _numPointAttempts = 50;
+	[SerializeField] private int _numPoints = 50;
+	[SerializeField] private int _numPointCandidates = 5;
 	
 	// Max connection distance. Set in Unity Editor
 	[SerializeField] private float _maxPRMConnectionDistance = 10;
-	[SerializeField] private float _minPRMPointDistance = .05f;
 
 	// Whether edges should be drawn.
 	private Boolean _drawLines = true;
@@ -53,16 +53,11 @@ public class PRMGenerator : MonoBehaviour {
 	private List<Vector3> _prmPoints = new List<Vector3>();
 	private Single[,] _prmEdges;
 	private int _numEdges;
-
-	private Collider[] _obstacles;
 	
 	private Vector2[] _finalPath;
 
 	private void Start ()
 	{
-		// Cache array of obstacles.
-		_obstacles = (from obs in GameObject.FindGameObjectsWithTag("Obstacles") select obs.GetComponent<Collider>()).ToArray();
-
 		_agentGO = Instantiate(_agentPrefab);
 		_agent = _agentGO.GetComponent<Agent>();
 		_agentGO.transform.position = _startLoc.position;
@@ -72,8 +67,6 @@ public class PRMGenerator : MonoBehaviour {
 		_safeRight = _right - _agentRadius;
 		_safeTop = _top - _agentRadius;
 		_safeBottom = _bottom + _agentRadius;
-		
-//		Random.InitState(1);
 
 		Stopwatch sw = new Stopwatch();
 		sw.Start();
@@ -92,44 +85,46 @@ public class PRMGenerator : MonoBehaviour {
 
 	/// <summary>
 	/// Populates the _prmPoints list with valid points.
+	///
+	/// Valid points are spawned with approximately Poisson-disc sampling, and do not overlap with obstacles.
 	/// </summary>
 	private void SpawnPRMPoints()
 	{
 		_prmPoints.Add(_startLoc.position);
 		_prmPoints.Add(_endLoc.position);
-		Collider agentCollider = _agentGO.GetComponent<Collider>();
-		for (var i = 0; i < _numPointAttempts; i++)
+		for (var i = 0; i < _numPoints; i++)
 		{
-			float x = Random.Range(_safeLeft, _safeRight);
-			float y = Random.Range(_safeBottom, _safeTop);
-
-			Vector3 loc = new Vector3(x, y);
+			Vector3 bestCandidate = Vector3.zero;
+			float bestCandidateDist = 0;
 			
-			if(_prmPoints.Any(pt => (pt - loc).sqrMagnitude < _minPRMPointDistance * _minPRMPointDistance)) continue;
-
-			bool isValid = false;
-			int relocAttempts = 0;
-			while (!isValid && relocAttempts++ < 5)
+			// Mitchell's Best Candidate approximation for Poisson-disc sampling
+			for (int j = 0; j < _numPointCandidates; j++)
 			{
-				isValid = true;
-				foreach (var obs in _obstacles)
+				float x = Random.Range(_safeLeft, _safeRight);
+				float y = Random.Range(_safeBottom, _safeTop);
+
+				var locCandidate = new Vector3(x, y);
+				var distToNearestExistingPoint = float.PositiveInfinity;
+				foreach (Vector3 existingPoint in _prmPoints)
 				{
-					Vector3 dir;
-					float dist;
-					
-					if (Physics.ComputePenetration(obs, obs.transform.position, obs.transform.rotation,
-						agentCollider, loc, Quaternion.identity,
-						out dir, out dist))
+					if ((locCandidate - existingPoint).sqrMagnitude < distToNearestExistingPoint)
 					{
-						isValid = false;
-						loc += dir * dist;
+						distToNearestExistingPoint = (locCandidate - existingPoint).sqrMagnitude;
 					}
+				}
+
+				if (distToNearestExistingPoint > bestCandidateDist)
+				{
+					bestCandidateDist = distToNearestExistingPoint;
+					bestCandidate = locCandidate;
 				}
 			}
 
-			if (loc.x < _safeRight && loc.x > _safeLeft && loc.y > _safeBottom && loc.y < _safeTop && isValid)
+			if (bestCandidate.x < _safeRight  && bestCandidate.x > _safeLeft &&
+			    bestCandidate.y > _safeBottom && bestCandidate.y < _safeTop  &&
+			    !Physics.CheckSphere(bestCandidate, _agentRadius))
 			{
-				_prmPoints.Insert(1, loc);
+				_prmPoints.Insert(1, bestCandidate);
 			}
 		}
 	}
@@ -186,9 +181,9 @@ public class PRMGenerator : MonoBehaviour {
 		
 		// Draw Points
 		Gizmos.color = Color.black;
-		foreach (Vector2 point in _prmPoints)
+		foreach (var point in _prmPoints)
 		{
-			Gizmos.DrawCube(point, Vector3.one * .1f);
+			Gizmos.DrawCube(point + Vector3.forward * -2, Vector3.one * .1f);
 		}
 
 		// Draw Lines
@@ -201,7 +196,7 @@ public class PRMGenerator : MonoBehaviour {
 				{
 					if (!Single.IsNegativeInfinity(_prmEdges[i, j]))
 					{
-						Gizmos.DrawLine(_prmPoints[i], _prmPoints[j]);
+						Gizmos.DrawLine(_prmPoints[i] + Vector3.forward * -2, _prmPoints[j] + Vector3.forward * -2);
 					}
 				}
 			}
