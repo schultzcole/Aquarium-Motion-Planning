@@ -49,7 +49,7 @@ public class PRMGenerator : MonoBehaviour {
 	[SerializeField] private float maxPRMConnectionDistance = 10;
 
 	// Whether edges should be drawn.
-	private Boolean _drawLines = true;
+	private Boolean _drawPRM = true;
 	
 	private List<Vector3> _prmPoints = new List<Vector3>();
 	private Single[,] _prmEdges;
@@ -168,7 +168,7 @@ public class PRMGenerator : MonoBehaviour {
 	{
 		if (Input.GetKeyDown(KeyCode.Tab))
 		{
-			_drawLines = !_drawLines;
+			_drawPRM = !_drawPRM;
 		}
 
 		if (Input.GetKeyDown(KeyCode.Space))
@@ -195,30 +195,33 @@ public class PRMGenerator : MonoBehaviour {
 	{
 		if (!Application.isPlaying) return;
 
-        // Draw Points
-        Gizmos.color = new Color(0, 0, 0, .5f);
-		foreach (var point in _prmPoints)
+		if (_drawPRM)
 		{
-			Gizmos.DrawSphere(point, .05f);
-		}
-
-        // Draw Lines
-        Gizmos.color = new Color(0, 0, 0, .05f);
-        if (_drawLines && _prmEdges != null)
-		{
-			var len = _prmPoints.Count;
-			for (var i = 0; i < len; i++)
+			// Draw Points
+			Gizmos.color = new Color(0, 0, 0, .5f);
+			foreach (var point in _prmPoints)
 			{
-				for (var j = i + 1; j < len; j++)
+				Gizmos.DrawSphere(point, .05f);
+			}
+
+			// Draw Lines
+			Gizmos.color = new Color(0, 0, 0, .05f);
+			if (_prmEdges != null)
+			{
+				var len = _prmPoints.Count;
+				for (var i = 0; i < len; i++)
 				{
-					if (!Single.IsNegativeInfinity(_prmEdges[i, j]))
+					for (var j = i + 1; j < len; j++)
 					{
-						Gizmos.DrawLine(_prmPoints[i], _prmPoints[j]);
+						if (!Single.IsNegativeInfinity(_prmEdges[i, j]))
+						{
+							Gizmos.DrawLine(_prmPoints[i], _prmPoints[j]);
+						}
 					}
 				}
 			}
 		}
-		
+
 		// Draw Path
 		if (_finalPaths != null)
 		{
