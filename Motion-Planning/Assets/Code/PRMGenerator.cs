@@ -171,7 +171,7 @@ public class PRMGenerator : MonoBehaviour {
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
 			_finalPath = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
-			_agent.Init(_finalPath);
+//			_agent.Init(_finalPath);
 		}
 	}
 
