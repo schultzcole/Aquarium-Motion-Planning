@@ -15,23 +15,23 @@ public class PRMGenerator : MonoBehaviour {
 
 	// Start Location. Set in the Unity Editor.
 	[Header("Refs")]
-	[SerializeField] private Transform _startLoc;
+	[SerializeField] private Transform startLoc;
 	
 	// End Location. Set in the Unity Editor.
-	[SerializeField] private Transform _endLoc;
+	[SerializeField] private Transform endLoc;
 	
 	// Agent Prefab. Set in the Unity Editor.
-	[SerializeField] private GameObject _agentPrefab;
+	[SerializeField] private GameObject agentPrefab;
 	private GameObject _agentGO;
 	private Agent _agent;
 	private float _agentRadius;
 
 	// Simulation bounds. Set in Unity Editor.
 	[Header("Bounds")]
-	[SerializeField] private float _left;
-	[SerializeField] private float _right;
-	[SerializeField] private float _top;
-	[SerializeField] private float _bottom;
+	[SerializeField] private float left;
+	[SerializeField] private float right;
+	[SerializeField] private float top;
+	[SerializeField] private float bottom;
 
 	// Bounds adjusted for agent radius.
 	private float _safeLeft;
@@ -41,11 +41,11 @@ public class PRMGenerator : MonoBehaviour {
 
 	// Number of points to add to the roadmap. Set in Unity Editor.
 	[Header("PRM Config")]
-	[SerializeField] private int _numPoints = 50;
-	[SerializeField] private int _numPointCandidates = 5;
+	[SerializeField] private int numPoints = 50;
+	[SerializeField] private int numPointCandidates = 5;
 	
 	// Max connection distance. Set in Unity Editor
-	[SerializeField] private float _maxPRMConnectionDistance = 10;
+	[SerializeField] private float maxPRMConnectionDistance = 10;
 
 	// Whether edges should be drawn.
 	private Boolean _drawLines = true;
@@ -54,22 +54,22 @@ public class PRMGenerator : MonoBehaviour {
 	private Single[,] _prmEdges;
 	private int _numEdges;
 	
-	private TreeNode _finalPathRoot;
+	private PathNode[] _finalPaths;
 	private float _finalPathMaxDepth;
 
 	private void Start ()
 	{
         Random.InitState(1);
 
-		_agentGO = Instantiate(_agentPrefab);
+		_agentGO = Instantiate(agentPrefab);
 		_agent = _agentGO.GetComponent<Agent>();
-		_agentGO.transform.position = _startLoc.position;
+		_agentGO.transform.position = startLoc.position;
 		_agentRadius = _agentGO.transform.localScale.x / 2;
 
-		_safeLeft = _left + _agentRadius;
-		_safeRight = _right - _agentRadius;
-		_safeTop = _top - _agentRadius;
-		_safeBottom = _bottom + _agentRadius;
+		_safeLeft = left + _agentRadius;
+		_safeRight = right - _agentRadius;
+		_safeTop = top - _agentRadius;
+		_safeBottom = bottom + _agentRadius;
 
 		Stopwatch sw = new Stopwatch();
 		sw.Start();
@@ -93,14 +93,14 @@ public class PRMGenerator : MonoBehaviour {
 	/// </summary>
 	private void SpawnPRMPoints()
 	{
-		_prmPoints.Add(_endLoc.position);
-		for (var i = 0; i < _numPoints; i++)
+		_prmPoints.Add(endLoc.position);
+		for (var i = 0; i < numPoints; i++)
 		{
 			Vector3 bestCandidate = Vector3.zero;
 			float bestCandidateDist = 0;
 			
 			// Mitchell's Best Candidate approximation for Poisson-disc sampling
-			for (int j = 0; j < _numPointCandidates; j++)
+			for (int j = 0; j < numPointCandidates; j++)
 			{
 				float x = Random.Range(_safeLeft, _safeRight);
 				float y = Random.Range(_safeBottom, _safeTop);
@@ -124,7 +124,7 @@ public class PRMGenerator : MonoBehaviour {
 
 			if (bestCandidate.x < _safeRight  && bestCandidate.x > _safeLeft &&
 			    bestCandidate.y > _safeBottom && bestCandidate.y < _safeTop  &&
-			    !Physics.CheckSphere(bestCandidate, _agentRadius))
+			    !Physics.CheckSphere(bestCandidate, _agentRadius, LayerMask.GetMask("Obstacles")))
 			{
 				_prmPoints.Insert(1, bestCandidate);
 			}
@@ -136,8 +136,6 @@ public class PRMGenerator : MonoBehaviour {
 	/// </summary>
 	private void ConnectPRMEdges()
 	{
-		_agentGO.GetComponent<Collider>().enabled = false;
-		
 		int len = _prmPoints.Count;
 		_prmEdges = new Single[len, len];
 		for (var i = 0; i < len; i++)
@@ -149,18 +147,17 @@ public class PRMGenerator : MonoBehaviour {
 				float dist = Vector3.Distance(_prmPoints[i], _prmPoints[j]);
 				
 				// Ignore pairs that are too far away
-				if (dist > _maxPRMConnectionDistance) continue;
+				if (dist > maxPRMConnectionDistance) continue;
 
 				// Ignore pairs with obstacles between them.
 				// A capsule check is the fastest way I've found to do this that is accurate.
-				if (Physics.CheckCapsule(_prmPoints[i], _prmPoints[j], _agentRadius)) continue;
+				if (Physics.CheckCapsule(_prmPoints[i], _prmPoints[j], _agentRadius,
+					LayerMask.GetMask("Obstacles"))) continue;
 				
 				_prmEdges[i, j] = _prmEdges[j, i] = dist;
 				_numEdges++;
 			}
 		}
-		
-		_agentGO.GetComponent<Collider>().enabled = true;
 	}
 	
 	private void Update()
@@ -172,9 +169,9 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
-			_finalPathRoot = Pathfinder.FindPaths(_prmPoints.ToArray(), _prmEdges);
-			_finalPathMaxDepth = _finalPathRoot.Flatten()
-											   .Aggregate(0.0f, (max, next) => next.TotalDist > max ? next.TotalDist : max);
+			_finalPaths = Pathfinder.FindPaths(_prmPoints.ToArray(), _prmEdges);
+			_finalPathMaxDepth =
+				_finalPaths.Aggregate(0.0f, (max, next) => next.TotalPathDist > max ? next.TotalPathDist : max);
 //			_agent.Init(_finalPath);
 		}
 	}
@@ -207,15 +204,13 @@ public class PRMGenerator : MonoBehaviour {
 		}
 		
 		// Draw Path
-		if (_finalPathRoot != null)
+		if (_finalPaths != null)
 		{
-			foreach (var node in _finalPathRoot.Flatten())
+			foreach (var node in _finalPaths)
 			{
-				if (node.Parent != null)
-				{
-                    Gizmos.color = Color.Lerp(new Color(0, .5f, 0), new Color(.5f, 0, 0), (float)node.TotalDist / _finalPathMaxDepth);
-					Gizmos.DrawLine(node.Parent.Value, node.Value);
-				}
+				Gizmos.color = Color.Lerp(new Color(0, .5f, 0), new Color(.5f, 0, 0),
+					node.TotalPathDist / _finalPathMaxDepth);
+				Gizmos.DrawLine(node.Position + node.Direction, node.Position);
 			}
 		}
 	}

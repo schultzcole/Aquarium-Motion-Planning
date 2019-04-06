@@ -13,7 +13,7 @@ public class PriorityQueue
 	/// The underlying array representing the queue. Internally the queue is implemented as a heap structure,
 	/// stored in array form here.
 	/// </summary>
-	private PathNode[] _array;
+	private QueueNode[] _array;
 
 	/// <summary>
 	/// The current capacity of the queue. Represents how much memory is allocated for _array.
@@ -27,7 +27,7 @@ public class PriorityQueue
 	/// <summary>
 	/// The comparer object to use to compare elements in the array.
 	/// </summary>
-	private readonly PathNodeComparer _comparer;
+	private readonly QueueNodeComparer _comparer;
 
 	/// <summary>
 	/// How many elements are currently in the queue.
@@ -38,24 +38,24 @@ public class PriorityQueue
 	/// <summary>
 	/// Create a new Priority Queue with default capacity (8) and comparer.
 	/// </summary>
-	public PriorityQueue() : this(8, new PathNodeComparer()) { }
+	public PriorityQueue() : this(8, new QueueNodeComparer()) { }
 
 	/// <inheritdoc />
 	/// <summary>
 	/// Create a new Priority Queue with given initial capacity and a default comparer.
 	/// </summary>
 	/// <param name="initialCapacity">Initial slots to allocate.</param>
-	public PriorityQueue(Int32 initialCapacity) : this(initialCapacity, new PathNodeComparer()) { }
+	public PriorityQueue(Int32 initialCapacity) : this(initialCapacity, new QueueNodeComparer()) { }
 
 	/// <summary>
 	/// Create a new Priority Queue with given initial capacity and comparer.
 	/// </summary>
 	/// <param name="initialCapacity">Initial slots to allocate.</param>
 	/// <param name="comparer">Comparer object to use to compare elements in the queue.</param>
-	public PriorityQueue(Int32 initialCapacity, PathNodeComparer comparer)
+	public PriorityQueue(Int32 initialCapacity, QueueNodeComparer comparer)
 	{
 		_capacity = initialCapacity;
-		_array = new PathNode[initialCapacity + 1];
+		_array = new QueueNode[initialCapacity + 1];
 		Count = 0;
 
 		_comparer = comparer;
@@ -65,7 +65,7 @@ public class PriorityQueue
 	/// Adds an element to the PriorityQueue.
 	/// </summary>
 	/// <param name="value">The element to add.</param>
-	public void Add(PathNode value)
+	public void Add(QueueNode value)
 	{
 		if (Count + 1 >= _capacity)
 		{
@@ -82,7 +82,7 @@ public class PriorityQueue
 	/// </summary>
 	/// <returns>First item in the queue.</returns>
 	/// <exception cref="QueueEmptyException">Thrown if the queue is empty.</exception>
-	public PathNode Peek()
+	public QueueNode Peek()
 	{
 		if (IsEmpty())
 		{
@@ -97,14 +97,14 @@ public class PriorityQueue
 	/// </summary>
 	/// <returns>First item in the queue.</returns>
 	/// <exception cref="QueueEmptyException">Thrown if the queue is empty.</exception>
-	public PathNode Pop()
+	public QueueNode Pop()
 	{
 		if (IsEmpty())
 		{
 			throw new QueueEmptyException();
 		}
 
-		PathNode result = _array[1];
+		QueueNode result = _array[1];
 		_array[1] = _array[Count--];
 		BubbleDown(1);
 		return result;
@@ -127,7 +127,7 @@ public class PriorityQueue
 	/// <param name="distParentToThis">The distance from the node to change to its parent</param>
 	/// <returns>True if successful, false if a node with that ID does not exist or
 	/// if the existing depth is lower than the new depth.</returns>
-	public bool ReparentPathNode(int thisId, PathNode newParent, float distParentToThis)
+	public bool ReparentPathNode(int thisId, QueueNode newParent, float distParentToThis)
 	{
 		int arrIndex;
 		try
@@ -157,7 +157,7 @@ public class PriorityQueue
 		return true;
 	}
 
-	public bool Contains(Func<PathNode, bool> pred)
+	public bool Contains(Func<QueueNode, bool> pred)
 	{
         for (int i = 1; i <= Count; ++i)
         {
@@ -175,7 +175,7 @@ public class PriorityQueue
 	private void BubbleDown(Int32 index)
 	{
 		var maxIndex = index;
-		PathNode maxValue = _array[index];
+		QueueNode maxValue = _array[index];
 		var left = LeftChildIndex(index);
 		var right = RightChildIndex(index);
 		if (left <= Count && _comparer.Compare(_array[index], _array[left]) < 0)
@@ -225,7 +225,7 @@ public class PriorityQueue
 	/// <param name="bIndex">Index of the second element to swap.</param>
 	private void SwapElements(Int32 aIndex, Int32 bIndex)
 	{
-		PathNode tmp = _array[aIndex];
+		QueueNode tmp = _array[aIndex];
 		_array[aIndex] = _array[bIndex];
 		_array[bIndex] = tmp;
 	}

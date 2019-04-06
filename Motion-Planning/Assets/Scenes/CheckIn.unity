@@ -428,17 +428,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6af34006c4818d43ad13492935d13cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _startLoc: {fileID: 205716228}
-  _endLoc: {fileID: 912902344}
-  _agentPrefab: {fileID: 1518970272185878, guid: 262cb938ccd69cb48a7cecaab53cc637,
+  startLoc: {fileID: 205716228}
+  endLoc: {fileID: 912902344}
+  agentPrefab: {fileID: 1518970272185878, guid: 262cb938ccd69cb48a7cecaab53cc637,
     type: 2}
-  _left: -10
-  _right: 10
-  _top: 10
-  _bottom: -10
-  _numPoints: 1000
-  _numPointCandidates: 5
-  _maxPRMConnectionDistance: 2
+  left: -10
+  right: 10
+  top: 10
+  bottom: -10
+  numPoints: 100
+  numPointCandidates: 5
+  maxPRMConnectionDistance: 5
 --- !u!4 &448074562
 Transform:
   m_ObjectHideFlags: 0
