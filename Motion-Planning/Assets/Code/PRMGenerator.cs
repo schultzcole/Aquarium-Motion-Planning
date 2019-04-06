@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using Code;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Debug = UnityEngine.Debug;
-using Object = System.Object;
 using Random = UnityEngine.Random;
 
 public class PRMGenerator : MonoBehaviour {
@@ -30,12 +26,16 @@ public class PRMGenerator : MonoBehaviour {
 	[Header("Bounds")]
 	[SerializeField] private float left;
 	[SerializeField] private float right;
+	[SerializeField] private float front;
+	[SerializeField] private float back;
 	[SerializeField] private float top;
 	[SerializeField] private float bottom;
 
 	// Bounds adjusted for agent radius.
 	private float _safeLeft;
 	private float _safeRight;
+	private float _safeFront;
+	private float _safeBack;
 	private float _safeTop;
 	private float _safeBottom;
 
@@ -53,14 +53,12 @@ public class PRMGenerator : MonoBehaviour {
 	private List<Vector3> _prmPoints = new List<Vector3>();
 	private Single[,] _prmEdges;
 	private int _numEdges;
-	
+
 	private PathNode[] _finalPaths;
 	private float _finalPathMaxDepth;
 
 	private void Start ()
 	{
-        Random.InitState(1);
-
 		_agentGO = Instantiate(agentPrefab);
 		_agent = _agentGO.GetComponent<Agent>();
 		_agentGO.transform.position = startLoc.position;
@@ -68,6 +66,8 @@ public class PRMGenerator : MonoBehaviour {
 
 		_safeLeft = left + _agentRadius;
 		_safeRight = right - _agentRadius;
+		_safeFront = front + _agentRadius;
+		_safeBack = back - _agentRadius;
 		_safeTop = top - _agentRadius;
 		_safeBottom = bottom + _agentRadius;
 
@@ -104,8 +104,9 @@ public class PRMGenerator : MonoBehaviour {
 			{
 				float x = Random.Range(_safeLeft, _safeRight);
 				float y = Random.Range(_safeBottom, _safeTop);
+				float z = Random.Range(_safeBack, _safeFront);
 
-				var locCandidate = new Vector3(x, y);
+				var locCandidate = new Vector3(x, y, z);
 				var distToNearestExistingPoint = float.PositiveInfinity;
 				foreach (Vector3 existingPoint in _prmPoints)
 				{
@@ -172,7 +173,6 @@ public class PRMGenerator : MonoBehaviour {
 			_finalPaths = Pathfinder.FindPaths(_prmPoints.ToArray(), _prmEdges);
 			_finalPathMaxDepth =
 				_finalPaths.Aggregate(0.0f, (max, next) => next.TotalPathDist > max ? next.TotalPathDist : max);
-//			_agent.Init(_finalPath);
 		}
 	}
 
@@ -184,20 +184,21 @@ public class PRMGenerator : MonoBehaviour {
 		Gizmos.color = Color.black;
 		foreach (var point in _prmPoints)
 		{
-			Gizmos.DrawCube(point + Vector3.forward * -2, Vector3.one * .1f);
+			Gizmos.DrawCube(point, Vector3.one * .1f);
 		}
 
 		// Draw Lines
 		if (_drawLines && _prmEdges != null)
 		{
-			Gizmos.color = new Color(0, 0, 0, .1f);
-			for (var i = 0; i < _prmEdges.GetLength(0); i++)
+			var len = _prmPoints.Count;
+			Gizmos.color = new Color(0, 0, 0, .05f);
+			for (var i = 0; i < len; i++)
 			{
-				for (var j = i + 1; j < _prmEdges.GetLength(1); j++)
+				for (var j = i + 1; j < len; j++)
 				{
 					if (!Single.IsNegativeInfinity(_prmEdges[i, j]))
 					{
-						Gizmos.DrawLine(_prmPoints[i] + Vector3.forward * -2, _prmPoints[j] + Vector3.forward * -2);
+						Gizmos.DrawLine(_prmPoints[i], _prmPoints[j]);
 					}
 				}
 			}
@@ -208,7 +209,7 @@ public class PRMGenerator : MonoBehaviour {
 		{
 			foreach (var node in _finalPaths)
 			{
-				Gizmos.color = Color.Lerp(new Color(0, .5f, 0), new Color(.5f, 0, 0),
+				Gizmos.color = Color.Lerp(new Color(0, .5f, 0, .5f), new Color(.5f, 0, 0, .5f),
 					node.TotalPathDist / _finalPathMaxDepth);
 				Gizmos.DrawLine(node.Position + node.Direction, node.Position);
 			}

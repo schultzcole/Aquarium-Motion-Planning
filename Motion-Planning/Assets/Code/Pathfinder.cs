@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using Code;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -55,7 +51,7 @@ public static class Pathfinder
 
 		Debug.Log("Found paths in " + sw.ElapsedMilliseconds + "ms");
 
-		var result = new PathNode[len];
+		var results = new PathNode[len];
 		foreach (var pnode in closedList.List)
 		{
 			for (int i = 0; i < len; i++)
@@ -63,11 +59,12 @@ public static class Pathfinder
 				if (pnode.ID != i) continue;
 
 				Vector3 direction = pnode.Parent != null ? pnode.Parent.Position - pnode.Position: Vector3.zero;
-				result[i] = new PathNode(pnode.Position, direction, pnode.Depth);
+				results[i] = new PathNode(pnode.Position, direction, pnode.Depth);
 				break;
 			}
 		}
 
-		return result;
+		return results;
 	}
+
 }
