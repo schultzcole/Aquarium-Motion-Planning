@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Code;
 using UnityEngine;
 
@@ -14,6 +15,11 @@ public class PriorityQueue
 	/// stored in array form here.
 	/// </summary>
 	private QueueNode[] _array;
+
+	/// <summary>
+	/// The hashSet exists to give good node lookup time, to check whether a node already exists in the queue.
+	/// </summary>
+	private HashSet<Int32> _hashSet;
 
 	/// <summary>
 	/// The current capacity of the queue. Represents how much memory is allocated for _array.
@@ -56,6 +62,7 @@ public class PriorityQueue
 	{
 		_capacity = initialCapacity;
 		_array = new QueueNode[initialCapacity + 1];
+		_hashSet = new HashSet<Int32>();
 		Count = 0;
 
 		_comparer = comparer;
@@ -74,6 +81,7 @@ public class PriorityQueue
 		}
 
 		_array[++Count] = value;
+		_hashSet.Add(value.ID);
 		BubbleUp(Count);
 	}
 
@@ -107,6 +115,8 @@ public class PriorityQueue
 		QueueNode result = _array[1];
 		_array[1] = _array[Count--];
 		BubbleDown(1);
+
+		_hashSet.Remove(result.ID);
 		return result;
 	}
 
@@ -129,6 +139,8 @@ public class PriorityQueue
 	/// if the existing depth is lower than the new depth.</returns>
 	public bool ReparentPathNode(int thisId, QueueNode newParent, float distParentToThis)
 	{
+		if (!_hashSet.Contains(thisId)) return false;
+		
 		int arrIndex;
 		try
 		{
@@ -157,15 +169,9 @@ public class PriorityQueue
 		return true;
 	}
 
-	public bool Contains(Func<QueueNode, bool> pred)
+	public bool Contains(Int32 ID)
 	{
-        for (int i = 1; i <= Count; ++i)
-        {
-            if (_array[i] == null) continue;
-            if (pred(_array[i])) return true;
-        }
-
-		return false;
+		return _hashSet.Contains(ID);
 	}
 
 	/// <summary>

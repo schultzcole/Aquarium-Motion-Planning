@@ -24,7 +24,7 @@ public static class Pathfinder
 		var openList = new PriorityQueue(len/2);
 		openList.Add(new QueueNode(points[0], 0, null, 0));
 
-		var closedList = new List<QueueNode>();
+		var closedList = new ClosedList(len);
 
 		while (!openList.IsEmpty())
 		{
@@ -34,13 +34,13 @@ public static class Pathfinder
 			for (int nextIdx = 0; nextIdx < len; nextIdx++)
 			{
 				if (nextIdx == current.ID) continue;
-				if (closedList.Exists(x => nextIdx == x.ID)) continue;
 				var costCurrentToNext = edges[current.ID, nextIdx];
 				if (float.IsNegativeInfinity(costCurrentToNext)) continue;
+				if (closedList.Contains(nextIdx)) continue;
 
 				var totalCostToNext = current.Depth + costCurrentToNext;
 
-				if (openList.Contains(x => x.ID == nextIdx))
+				if (openList.Contains(nextIdx))
 				{
 					openList.ReparentPathNode(nextIdx, current, costCurrentToNext);
 				}
@@ -54,24 +54,19 @@ public static class Pathfinder
 		sw.Stop();
 
 		Debug.Log("Found paths in " + sw.ElapsedMilliseconds + "ms");
-		sw.Restart();
 
 		var result = new PathNode[len];
-		foreach (var pnode in closedList)
+		foreach (var pnode in closedList.List)
 		{
 			for (int i = 0; i < len; i++)
 			{
-				if (pnode.Position != points[i]) continue;
+				if (pnode.ID != i) continue;
 
 				Vector3 direction = pnode.Parent != null ? pnode.Parent.Position - pnode.Position: Vector3.zero;
 				result[i] = new PathNode(pnode.Position, direction, pnode.Depth);
 				break;
 			}
 		}
-
-		sw.Stop();
-
-		Debug.Log("Built tree in " + sw.ElapsedMilliseconds + "ms");
 
 		return result;
 	}
