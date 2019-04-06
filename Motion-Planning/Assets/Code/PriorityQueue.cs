@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Code;
+using UnityEngine;
 
 /// <summary>
 /// A priority queue, in which elements are added and can be removed in order of priority, as defined by TComparer.
@@ -66,7 +67,7 @@ public class PriorityQueue
 	/// <param name="value">The element to add.</param>
 	public void Add(PathNode value)
 	{
-		if (Count + 1 > _capacity)
+		if (Count + 1 >= _capacity)
 		{
 			_capacity *= 2;
 			Array.Resize(ref _array, _capacity);
@@ -118,31 +119,39 @@ public class PriorityQueue
 		return Count == 0;
 	}
 
-	public bool ChangeParentPathNode(Predicate<PathNode> pred, PathNode newParent, float toOther)
+	/// <summary>
+	/// Changes a PathNode's parent and depth, thereby altering it's priority in the queue.
+	/// </summary>
+	/// <param name="thisId">The id of the node to change</param>
+	/// <param name="newParent">The new parent of the node to change</param>
+	/// <param name="distParentToThis">The distance from the node to change to its parent</param>
+	/// <returns>True if successful, false if a node with that ID does not exist or
+	/// if the existing depth is lower than the new depth.</returns>
+	public bool ReparentPathNode(int thisId, PathNode newParent, float distParentToThis)
 	{
-		int index;
+		int arrIndex;
 		try
 		{
-			index = Array.FindIndex(_array, pred);
+			arrIndex = Array.FindIndex(_array, 1, Count, x => x != null && x.ID == thisId);
 		}
 		catch
 		{
 			return false;
 		}
 
-		if (_array[index].TotalCost < newParent.Depth + toOther + _array[index].Dist)
+		if (_array[arrIndex].Depth < newParent.Depth + distParentToThis)
 		{
 			return false;
 		}
 
-		_array[index].Parent = newParent;
-		_array[index].Depth = newParent.Depth + toOther;
-		var parent = ParentIndex(index);
-		while (parent > 0 && _comparer.Compare(_array[index], _array[parent]) > 0)
+		_array[arrIndex].Parent = newParent;
+		_array[arrIndex].Depth = newParent.Depth + distParentToThis;
+		var parent = ParentIndex(arrIndex);
+		while (arrIndex > 1 && _comparer.Compare(_array[arrIndex], _array[parent]) > 0)
 		{
-			SwapElements(parent, index);
-			index = parent;
-			parent = ParentIndex(index);
+			SwapElements(parent, arrIndex);
+			arrIndex = parent;
+			parent = ParentIndex(arrIndex);
 		}
 
 		return true;
@@ -150,7 +159,13 @@ public class PriorityQueue
 
 	public bool Contains(Func<PathNode, bool> pred)
 	{
-		return _array.Any(pred);
+        for (int i = 1; i <= Count; ++i)
+        {
+            if (_array[i] == null) continue;
+            if (pred(_array[i])) return true;
+        }
+
+		return false;
 	}
 
 	/// <summary>

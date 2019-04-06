@@ -55,10 +55,12 @@ public class PRMGenerator : MonoBehaviour {
 	private int _numEdges;
 	
 	private TreeNode _finalPathRoot;
-	private int _finalPathMaxDepth;
+	private float _finalPathMaxDepth;
 
 	private void Start ()
 	{
+        Random.InitState(1);
+
 		_agentGO = Instantiate(_agentPrefab);
 		_agent = _agentGO.GetComponent<Agent>();
 		_agentGO.transform.position = _startLoc.position;
@@ -91,7 +93,6 @@ public class PRMGenerator : MonoBehaviour {
 	/// </summary>
 	private void SpawnPRMPoints()
 	{
-		_prmPoints.Add(_startLoc.position);
 		_prmPoints.Add(_endLoc.position);
 		for (var i = 0; i < _numPoints; i++)
 		{
@@ -171,9 +172,9 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
-//			_finalPathRoot = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
-//			_finalPathMaxDepth = _finalPathRoot.Flatten()
-//											   .Aggregate(0, (max, next) => next.Depth > max ? next.Depth : max);
+			_finalPathRoot = Pathfinder.FindPaths(_prmPoints.ToArray(), _prmEdges);
+			_finalPathMaxDepth = _finalPathRoot.Flatten()
+											   .Aggregate(0.0f, (max, next) => next.TotalDist > max ? next.TotalDist : max);
 //			_agent.Init(_finalPath);
 		}
 	}
@@ -212,7 +213,7 @@ public class PRMGenerator : MonoBehaviour {
 			{
 				if (node.Parent != null)
 				{
-					Gizmos.color = Color.Lerp(Color.green, Color.red, (float)node.Parent.Depth / _finalPathMaxDepth);
+                    Gizmos.color = Color.Lerp(new Color(0, .5f, 0), new Color(.5f, 0, 0), (float)node.TotalDist / _finalPathMaxDepth);
 					Gizmos.DrawLine(node.Parent.Value, node.Value);
 				}
 			}

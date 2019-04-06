@@ -7,7 +7,8 @@ public class TreeNode
 	public Vector3 Value;
 	public List<TreeNode> Children = new List<TreeNode>();
 	public TreeNode Parent;
-	public int Depth = 0;
+    public Vector3 ToParent;
+	public float TotalDist;
 
 	public TreeNode(Vector3 value)
 	{
@@ -17,15 +18,17 @@ public class TreeNode
 	public void AddChild(TreeNode child)
 	{
 		Children.Add(child);
-		child.Depth = Depth + 1;
+        child.Parent = this;
+        child.ToParent = child.Value - Value;
+		child.TotalDist = TotalDist + child.ToParent.magnitude;
 	}
 
-	public bool ContainedInDescendents(Vector3 value)
+	public bool ContainedInDescendants(Vector3 value)
 	{
 		bool result = false;
 		foreach (var child in Children)
 		{
-			result |= child.ContainedInDescendents(value);
+			result |= child.ContainedInDescendants(value);
 			if (result)
 			{
 				return true;
@@ -33,6 +36,20 @@ public class TreeNode
 		}
 
 		return value == Value;
+	}
+
+	public TreeNode FindInDescendants(Vector3 value)
+	{
+		if (value == Value) return this;
+
+		TreeNode inChildren;
+		foreach (var child in Children)
+		{
+			inChildren = child.FindInDescendants(value);
+			if (inChildren != null) return inChildren;
+		}
+
+		return null;
 	}
 	
 	public IEnumerable<TreeNode> Flatten()
