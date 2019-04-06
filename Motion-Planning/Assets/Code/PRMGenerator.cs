@@ -54,7 +54,8 @@ public class PRMGenerator : MonoBehaviour {
 	private Single[,] _prmEdges;
 	private int _numEdges;
 	
-	private Vector2[] _finalPath;
+	private TreeNode _finalPathRoot;
+	private int _finalPathMaxDepth;
 
 	private void Start ()
 	{
@@ -170,7 +171,9 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
-			_finalPath = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
+//			_finalPathRoot = Pathfinder.FindPath((from pt in _prmPoints select (Vector2)pt).ToArray(), _prmEdges);
+//			_finalPathMaxDepth = _finalPathRoot.Flatten()
+//											   .Aggregate(0, (max, next) => next.Depth > max ? next.Depth : max);
 //			_agent.Init(_finalPath);
 		}
 	}
@@ -203,12 +206,15 @@ public class PRMGenerator : MonoBehaviour {
 		}
 		
 		// Draw Path
-		if (_finalPath != null)
+		if (_finalPathRoot != null)
 		{
-			Gizmos.color = Color.green;
-			for (int i = 0; i < _finalPath.Length - 1; i++)
+			foreach (var node in _finalPathRoot.Flatten())
 			{
-				Gizmos.DrawLine(_finalPath[i], _finalPath[i+1]);
+				if (node.Parent != null)
+				{
+					Gizmos.color = Color.Lerp(Color.green, Color.red, (float)node.Parent.Depth / _finalPathMaxDepth);
+					Gizmos.DrawLine(node.Parent.Value, node.Value);
+				}
 			}
 		}
 	}

@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+using UnityEngine;
 
 public class TreeNode
 {
 	public Vector3 Value;
 	public List<TreeNode> Children = new List<TreeNode>();
 	public TreeNode Parent;
+	public int Depth = 0;
 
 	public TreeNode(Vector3 value)
 	{
@@ -16,12 +17,11 @@ public class TreeNode
 	public void AddChild(TreeNode child)
 	{
 		Children.Add(child);
+		child.Depth = Depth + 1;
 	}
 
 	public bool ContainedInDescendents(Vector3 value)
 	{
-		// Inorder traversal of the tree.
-		// Postorder may provide better results, I will test that later.
 		bool result = false;
 		foreach (var child in Children)
 		{
@@ -33,5 +33,10 @@ public class TreeNode
 		}
 
 		return value == Value;
+	}
+	
+	public IEnumerable<TreeNode> Flatten()
+	{
+		return new[] {this}.Concat(Children.SelectMany(x => x.Flatten()));
 	}
 }
