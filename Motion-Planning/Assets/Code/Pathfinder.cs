@@ -1,18 +1,45 @@
+using System;
 using System.Diagnostics;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-public static class Pathfinder
+public class Pathfinder
 {
-	/// <summary>
-	/// Finds the shortest path from every point in the PRM to the goal.
-	/// The goal is assumed to be the first node in the list of points.
-	/// </summary>
-	/// <param name="points">A list of points in the PRM</param>
-	/// <param name="edges">A matrix of edges in the PRM</param>
-	/// <returns>An array of Rays, which indicate a PRM point and
-	/// the direction to move from that point on the optimal path to the goal.</returns>
-	public static PathNode[] FindPaths(Vector3[] points, float[,] edges)
+	public PathNode[] Results;
+
+    public Exception Error;
+
+    /// <summary>
+    /// Tries to find the shortest path from every point in the PRM to the goal.
+    /// The goal is assumed to be the first node in the list of points.
+    /// If an exception is encountered it will store it in the "error" field.
+    /// </summary>
+    /// <param name="points">A list of points in the PRM</param>
+    /// <param name="edges">A matrix of edges in the PRM</param>
+    public void TryFindPaths(Vector3[] points, float[,] edges)
+    {
+        // This is an evil hack because Unity doesn't natively support exceptions on background threads.
+        // If an exception is encountered when trying to find paths, this will catch it and store the exception,
+        // rather than the default which is to ignore it entirely.
+        // At the very least it allows us to view the exception details in a debugger.
+
+        try
+        {
+            FindPaths(points, edges);
+        }
+        catch (Exception e)
+        {
+            Error = e;
+        }
+    }
+
+    /// <summary>
+    /// Finds the shortest path from every point in the PRM to the goal.
+    /// The goal is assumed to be the first node in the list of points.
+    /// </summary>
+    /// <param name="points">A list of points in the PRM</param>
+    /// <param name="edges">A matrix of edges in the PRM</param>
+    private void FindPaths(Vector3[] points, float[,] edges)
 	{
 		Stopwatch sw = Stopwatch.StartNew();
 
@@ -51,7 +78,7 @@ public static class Pathfinder
 
 		Debug.Log("Found paths in " + sw.ElapsedMilliseconds + "ms");
 
-		var results = new PathNode[len];
+        Results = new PathNode[len];
 		foreach (var pnode in closedList.List)
 		{
 			for (int i = 0; i < len; i++)
@@ -59,12 +86,9 @@ public static class Pathfinder
 				if (pnode.ID != i) continue;
 
 				Vector3 direction = pnode.Parent != null ? pnode.Parent.Position - pnode.Position: Vector3.zero;
-				results[i] = new PathNode(pnode.Position, direction, pnode.Depth);
+				Results[i] = new PathNode(pnode.Position, direction, pnode.Depth);
 				break;
 			}
 		}
-
-		return results;
 	}
-
 }

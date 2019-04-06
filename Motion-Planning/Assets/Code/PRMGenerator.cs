@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Code;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -54,6 +55,8 @@ public class PRMGenerator : MonoBehaviour {
 	private Single[,] _prmEdges;
 	private int _numEdges;
 
+	private Pathfinder _pathfinder;
+	private Task _pathfindTask;
 	private PathNode[] _finalPaths;
 	private float _finalPathMaxDepth;
 
@@ -170,28 +173,40 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
-			_finalPaths = Pathfinder.FindPaths(_prmPoints.ToArray(), _prmEdges);
+			_pathfinder = new Pathfinder();
+			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges));
+			_pathfindTask.Start();
+		}
+
+		if (_pathfindTask != null && _pathfindTask.IsCompleted && _pathfinder.Error == null)
+		{
+			_finalPaths = _pathfinder.Results.ToArray();
 			_finalPathMaxDepth =
 				_finalPaths.Aggregate(0.0f, (max, next) => next.TotalPathDist > max ? next.TotalPathDist : max);
-		}
+
+
+            _pathfinder = null;
+            _pathfindTask.Dispose();
+            _pathfindTask = null;
+        }
 	}
 
 	private void OnDrawGizmos()
 	{
 		if (!Application.isPlaying) return;
-		
-		// Draw Points
-		Gizmos.color = Color.black;
+
+        // Draw Points
+        Gizmos.color = new Color(0, 0, 0, .5f);
 		foreach (var point in _prmPoints)
 		{
-			Gizmos.DrawCube(point, Vector3.one * .1f);
+			Gizmos.DrawSphere(point, .05f);
 		}
 
-		// Draw Lines
-		if (_drawLines && _prmEdges != null)
+        // Draw Lines
+        Gizmos.color = new Color(0, 0, 0, .05f);
+        if (_drawLines && _prmEdges != null)
 		{
 			var len = _prmPoints.Count;
-			Gizmos.color = new Color(0, 0, 0, .05f);
 			for (var i = 0; i < len; i++)
 			{
 				for (var j = i + 1; j < len; j++)
