@@ -155,7 +155,7 @@ MonoBehaviour:
   back: 10
   top: 20
   bottom: 0
-  numPoints: 10000
+  numPoints: 2000
   numPointCandidates: 5
   maxPRMConnectionDistance: 5
 --- !u!4 &448074562

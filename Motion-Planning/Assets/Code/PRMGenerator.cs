@@ -60,7 +60,7 @@ public class PRMGenerator : MonoBehaviour {
 
 	private Pathfinder _pathfinder;
 	private Task _pathfindTask;
-	private CancellationTokenSource cts = new CancellationTokenSource();
+	private CancellationTokenSource _cts = new CancellationTokenSource();
 	private Boolean _firstPath = true;
 	private int _goalIndex = 0;
 	private PathNode[] _finalPaths;
@@ -181,10 +181,10 @@ public class PRMGenerator : MonoBehaviour {
 			_finalPaths = null;
 			if (_pathfindTask != null && !_pathfindTask.IsCompleted)
 			{
-				cts.Cancel();
+				_cts.Cancel();
 				_pathfindTask.Wait();
-				cts.Dispose();
-				cts = new CancellationTokenSource();
+				_cts.Dispose();
+				_cts = new CancellationTokenSource();
 			}
 
 			if (!_firstPath)
@@ -199,7 +199,7 @@ public class PRMGenerator : MonoBehaviour {
 			}
 			
 			_pathfinder = new Pathfinder();
-			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges, _goalIndex, cts.Token));
+			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges, _goalIndex, _cts.Token));
 			_pathfindTask.Start();
 
 			_firstPath = false;
@@ -223,6 +223,8 @@ public class PRMGenerator : MonoBehaviour {
 		if (!Application.isPlaying) return;
 
 		
+		if (_drawPRM)
+		{
 			// Draw Points
 			Gizmos.color = new Color(0, 0, 0, .5f);
 			foreach (Vector3 point in _prmPoints)
@@ -230,8 +232,6 @@ public class PRMGenerator : MonoBehaviour {
 				Gizmos.DrawSphere(point, .05f);
 			}
 
-			if (_drawPRM)
-		{
 			// Draw Lines
 			Gizmos.color = new Color(0, 0, 0, .05f);
 			if (_prmEdges != null)

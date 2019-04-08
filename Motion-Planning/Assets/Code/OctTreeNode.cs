@@ -129,7 +129,7 @@ namespace Code
 					}
 				}
 
-				if (indices.Count >= 80)
+				if (indices.Count >= 64)
 				{
 					for (int child = 0; child < 8; child++)
 					{
