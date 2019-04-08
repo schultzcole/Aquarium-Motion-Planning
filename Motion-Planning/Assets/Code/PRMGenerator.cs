@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Code;
 using UnityEngine;
@@ -58,6 +59,8 @@ public class PRMGenerator : MonoBehaviour {
 
 	private Pathfinder _pathfinder;
 	private Task _pathfindTask;
+	private CancellationTokenSource cts = new CancellationTokenSource();
+	private Boolean _firstPath = true;
 	private PathNode[] _finalPaths;
 	private float _finalPathMaxDepth;
 
@@ -128,8 +131,8 @@ public class PRMGenerator : MonoBehaviour {
 			}
 
 			if (bestCandidate.x < _safeRight  && bestCandidate.x > _safeLeft &&
-			    bestCandidate.y > _safeBottom && bestCandidate.y < _safeTop  &&
-			    !Physics.CheckSphere(bestCandidate, _agentRadius, LayerMask.GetMask("Obstacles")))
+				bestCandidate.y > _safeBottom && bestCandidate.y < _safeTop  &&
+				!Physics.CheckSphere(bestCandidate, _agentRadius, LayerMask.GetMask("Obstacles")))
 			{
 				_prmPoints.Insert(1, bestCandidate);
 			}
@@ -175,8 +178,16 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
+			if (_pathfindTask != null && !_pathfindTask.IsCompleted)
+			{
+				cts.Cancel();
+				_pathfindTask.Wait();
+				cts.Dispose();
+				cts = new CancellationTokenSource();
+			}
+			
 			_pathfinder = new Pathfinder();
-			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges));
+			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges, cts.Token));
 			_pathfindTask.Start();
 		}
 
@@ -186,11 +197,10 @@ public class PRMGenerator : MonoBehaviour {
 			_finalPathMaxDepth =
 				_finalPaths.Aggregate(0.0f, (max, next) => next.TotalPathDist > max ? next.TotalPathDist : max);
 
-
-            _pathfinder = null;
-            _pathfindTask.Dispose();
-            _pathfindTask = null;
-        }
+			_pathfinder = null;
+			_pathfindTask.Dispose();
+			_pathfindTask = null;
+		}
 	}
 
 	private void OnDrawGizmos()

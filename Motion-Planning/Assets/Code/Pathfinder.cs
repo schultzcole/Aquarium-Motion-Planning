@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -7,40 +9,43 @@ public class Pathfinder
 {
 	public PathNode[] Results;
 
-    public Exception Error;
+	public Exception Error;
 
-    /// <summary>
-    /// Tries to find the shortest path from every point in the PRM to the goal.
-    /// The goal is assumed to be the first node in the list of points.
-    /// If an exception is encountered it will store it in the "error" field.
-    /// </summary>
-    /// <param name="points">A list of points in the PRM</param>
-    /// <param name="edges">A matrix of edges in the PRM</param>
-    public void TryFindPaths(Vector3[] points, float[,] edges)
-    {
-        // This is an evil hack because Unity doesn't natively support exceptions on background threads.
-        // If an exception is encountered when trying to find paths, this will catch it and store the exception,
-        // rather than the default which is to ignore it entirely.
-        // At the very least it allows us to view the exception details in a debugger.
-
-        try
-        {
-            FindPaths(points, edges);
-        }
-        catch (Exception e)
-        {
-            Error = e;
-        }
-    }
-
-    /// <summary>
-    /// Finds the shortest path from every point in the PRM to the goal.
-    /// The goal is assumed to be the first node in the list of points.
-    /// </summary>
-    /// <param name="points">A list of points in the PRM</param>
-    /// <param name="edges">A matrix of edges in the PRM</param>
-    private void FindPaths(Vector3[] points, float[,] edges)
+	/// <summary>
+	/// Tries to find the shortest path from every point in the PRM to the goal.
+	/// The goal is assumed to be the first node in the list of points.
+	/// If an exception is encountered it will store it in the "error" field.
+	/// </summary>
+	/// <param name="points">A list of points in the PRM</param>
+	/// <param name="edges">A matrix of edges in the PRM</param>
+	/// <param name="ct">A cancellation token to signal the task to abort early.</param>
+	public void TryFindPaths(Vector3[] points, float[,] edges, CancellationToken ct)
 	{
+		// This is an evil hack because Unity doesn't natively support exceptions on background threads.
+		// If an exception is encountered when trying to find paths, this will catch it and store the exception,
+		// rather than the default which is to ignore it entirely.
+		// At the very least it allows us to view the exception details in a debugger.
+
+		try
+		{
+			FindPaths(points, edges, ct);
+		}
+		catch (Exception e)
+		{
+			Error = e;
+		}
+	}
+
+	/// <summary>
+	/// Finds the shortest path from every point in the PRM to the goal.
+	/// The goal is assumed to be the first node in the list of points.
+	/// </summary>
+	/// <param name="points">A list of points in the PRM</param>
+	/// <param name="edges">A matrix of edges in the PRM</param>
+	/// <param name="ct">A cancellation token to signal the task to abort early.</param>
+	private void FindPaths(Vector3[] points, float[,] edges, CancellationToken ct)
+	{
+		Debug.Log("Pathfind Begun");
 		Stopwatch sw = Stopwatch.StartNew();
 
 		var len = points.Length;
@@ -51,6 +56,12 @@ public class Pathfinder
 
 		while (!openList.IsEmpty())
 		{
+			if (ct.IsCancellationRequested)
+			{
+				Debug.Log("Pathfind Cancelled");
+				throw new TaskCanceledException();
+			}
+			
 			var current = openList.Pop();
 			closedList.Add(current);
 
@@ -78,7 +89,7 @@ public class Pathfinder
 
 		Debug.Log("Found paths in " + sw.ElapsedMilliseconds + "ms");
 
-        Results = new PathNode[len];
+		Results = new PathNode[len];
 		foreach (var pnode in closedList.List)
 		{
 			for (int i = 0; i < len; i++)
