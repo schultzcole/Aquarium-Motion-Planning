@@ -50,6 +50,7 @@ public class PRMGenerator : MonoBehaviour {
 
 	// Whether edges should be drawn.
 	private Boolean _drawPRM = true;
+	private Boolean _drawPaths = true;
 	
 	private List<Vector3> _prmPoints = new List<Vector3>();
 	private Single[,] _prmEdges;
@@ -168,7 +169,8 @@ public class PRMGenerator : MonoBehaviour {
 	{
 		if (Input.GetKeyDown(KeyCode.Tab))
 		{
-			_drawPRM = !_drawPRM;
+			if (_drawPRM == _drawPaths) _drawPRM = !_drawPRM;
+			else _drawPaths = !_drawPaths;
 		}
 
 		if (Input.GetKeyDown(KeyCode.Space))
@@ -223,7 +225,7 @@ public class PRMGenerator : MonoBehaviour {
 		}
 
 		// Draw Path
-		if (_finalPaths != null)
+		if (_finalPaths != null && _drawPaths)
 		{
 			foreach (var node in _finalPaths)
 			{
