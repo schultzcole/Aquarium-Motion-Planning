@@ -54,6 +54,7 @@ public class PRMGenerator : MonoBehaviour {
 	private Boolean _drawPaths = true;
 	
 	private List<Vector3> _prmPoints = new List<Vector3>();
+	private OctTreeNode _octTree;
 	private Single[,] _prmEdges;
 	private int _numEdges;
 
@@ -85,11 +86,9 @@ public class PRMGenerator : MonoBehaviour {
 		sw.Stop();
 		Debug.Log("Spawning " + _prmPoints.Count + " PRM points took: " + sw.ElapsedMilliseconds +"ms");
 		
-		sw.Reset();
-		sw.Start();
+		sw.Restart();
 		ConnectPRMEdges();
 		sw.Stop();
-		
 		Debug.Log("Connecting " + _numEdges + " PRM edges took: " + sw.ElapsedMilliseconds +"ms");
 	}
 
@@ -223,15 +222,16 @@ public class PRMGenerator : MonoBehaviour {
 	{
 		if (!Application.isPlaying) return;
 
-		if (_drawPRM)
-		{
+		
 			// Draw Points
 			Gizmos.color = new Color(0, 0, 0, .5f);
-			foreach (var point in _prmPoints)
+			foreach (Vector3 point in _prmPoints)
 			{
 				Gizmos.DrawSphere(point, .05f);
 			}
 
+			if (_drawPRM)
+		{
 			// Draw Lines
 			Gizmos.color = new Color(0, 0, 0, .05f);
 			if (_prmEdges != null)
