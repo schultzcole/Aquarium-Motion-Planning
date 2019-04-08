@@ -5,24 +5,23 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Code;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Experimental.UIElements;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
-public class PRMGenerator : MonoBehaviour {
-
-	// Start Location. Set in the Unity Editor.
-	[Header("Refs")]
-	[SerializeField] private Transform startLoc;
-	
+public class PRMGenerator : MonoBehaviour
+{
 	// End Location. Set in the Unity Editor.
-	[SerializeField] private Transform endLoc;
+	[SerializeField] private Transform goalLoc;
 	
+	
+	[Header("Agents")]
 	// Agent Prefab. Set in the Unity Editor.
 	[SerializeField] private GameObject agentPrefab;
-	private GameObject _agentGO;
-	private Agent _agent;
 	private float _agentRadius;
+	[SerializeField] private int agentCount;
 
 	// Simulation bounds. Set in Unity Editor.
 	[Header("Bounds")]
@@ -63,15 +62,14 @@ public class PRMGenerator : MonoBehaviour {
 	private CancellationTokenSource _cts = new CancellationTokenSource();
 	private Boolean _firstPath = true;
 	private int _goalIndex = 0;
+	
+	// Array of path nodes, indicating the direction to the next node closer to the goal. In the same order as _prmPoints.
 	private PathNode[] _finalPaths;
 	private float _finalPathMaxDepth;
 
 	private void Start ()
 	{
-		_agentGO = Instantiate(agentPrefab);
-		_agent = _agentGO.GetComponent<Agent>();
-		_agentGO.transform.position = startLoc.position;
-		_agentRadius = _agentGO.transform.localScale.x / 2;
+		_agentRadius = agentPrefab.transform.localScale.x;
 
 		_safeLeft = left + _agentRadius;
 		_safeRight = right - _agentRadius;
@@ -90,8 +88,30 @@ public class PRMGenerator : MonoBehaviour {
 		ConnectPRMEdges();
 		sw.Stop();
 		Debug.Log("Connecting " + _numEdges + " PRM edges took: " + sw.ElapsedMilliseconds +"ms");
+
+		SpawnAgents();
 	}
 
+	private void SpawnAgents()
+	{
+		for (int i = 0; i < agentCount; i++)
+		{
+			Vector3 agentLoc;
+			do
+			{
+				float x = Random.Range(_safeLeft, _safeRight);
+				float y = Random.Range(_safeBottom, _safeTop);
+				float z = Random.Range(_safeBack, _safeFront);
+
+				agentLoc = new Vector3(x, y, z);
+			} while (Physics.CheckSphere(agentLoc, _agentRadius, LayerMask.GetMask("Obstacles")));
+
+			var agent = Instantiate(agentPrefab);
+
+			agent.transform.position = agentLoc;
+			agent.GetComponent<Agent>().Init(this);
+		}
+	}
 
 	/// <summary>
 	/// Populates the _prmPoints list with valid points.
@@ -100,7 +120,7 @@ public class PRMGenerator : MonoBehaviour {
 	/// </summary>
 	private void SpawnPRMPoints()
 	{
-		_prmPoints.Add(endLoc.position);
+		_prmPoints.Add(goalLoc.position);
 		for (var i = 0; i < numPoints; i++)
 		{
 			Vector3 bestCandidate = Vector3.zero;
@@ -167,6 +187,69 @@ public class PRMGenerator : MonoBehaviour {
 			}
 		}
 	}
+
+	/// <summary>
+	/// Returns a direction which indicates the direction an agent should travel from the given point to get to the goal.
+	/// </summary>
+	/// <param name="point">The point at which to query</param>
+	/// <returns>A vector indicating the direction to travel to reach the goal from the given point, or null if no path exists.</returns>
+	public Vector3? QueryGradientField(Vector3 point)
+	{
+		if (_finalPaths == null) return null;
+
+		if (!Physics.Linecast(point, _prmPoints[_goalIndex], LayerMask.GetMask("Obstacles")))
+		{
+			return Vector3.ClampMagnitude(_prmPoints[_goalIndex] - point, 1);
+		}
+
+		int numToSample = 3;
+		float sampleRadius = 5;
+
+		List<int> inRange = new List<int>();
+		for (int i = 0; i < _prmPoints.Count; i++)
+		{
+			var sqrDist = (_prmPoints[i] - point).sqrMagnitude;
+			if (sqrDist < sampleRadius)
+			{
+				inRange.Add(i);
+			}
+		}
+
+		int[] nearestIndex = (from _ in Enumerable.Range(0, numToSample) select -1).ToArray();
+		float[] nearestDist = (from _ in Enumerable.Range(0, numToSample) select float.PositiveInfinity).ToArray();
+		foreach (var i in inRange)
+		{
+			for (int j = 0; j < numToSample; j++)
+			{
+				var sqrDist = (point - _prmPoints[i]).sqrMagnitude;
+				if (sqrDist < nearestDist[j])
+				{
+					for (int k = numToSample - 1; k > j; k--)
+					{
+						nearestDist[k] = nearestDist[k - 1];
+						nearestIndex[k] = nearestIndex[k - 1];
+					}
+
+					nearestDist[j] = sqrDist;
+					nearestIndex[j] = i;
+				}
+			}
+		}
+
+		var totalDir = nearestIndex
+			.Where(cand => cand != -1 && !Physics.Linecast(point, _prmPoints[cand], LayerMask.GetMask("Obstacles")))
+			.Aggregate(new Tuple<Vector3, int>(Vector3.zero, 0),
+				(acc, next) =>
+				{
+					var dir = acc.Item1 + _finalPaths[next].Direction;
+					var count = acc.Item2 + 1;
+					return new Tuple<Vector3, int>(dir, count);
+				});
+
+		var avgDir = totalDir.Item1/totalDir.Item2;
+
+		return avgDir.normalized;
+	}
 	
 	private void Update()
 	{
@@ -207,7 +290,7 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (_pathfindTask != null && _pathfindTask.IsCompleted && _pathfinder.Error == null)
 		{
-			endLoc.position = _prmPoints[_goalIndex];
+			goalLoc.position = _prmPoints[_goalIndex];
 			_finalPaths = _pathfinder.Results.ToArray();
 			_finalPathMaxDepth =
 				_finalPaths.Aggregate(0.0f, (max, next) => next.TotalPathDist > max ? next.TotalPathDist : max);
@@ -221,7 +304,6 @@ public class PRMGenerator : MonoBehaviour {
 	private void OnDrawGizmos()
 	{
 		if (!Application.isPlaying) return;
-
 		
 		if (_drawPRM)
 		{
