@@ -18,8 +18,9 @@ public class Pathfinder
 	/// </summary>
 	/// <param name="points">A list of points in the PRM</param>
 	/// <param name="edges">A matrix of edges in the PRM</param>
-	/// <param name="ct">A cancellation token to signal the task to abort early.</param>
-	public void TryFindPaths(Vector3[] points, float[,] edges, CancellationToken ct)
+	/// <param name="goalID">The index of the goal point in the points vector</param>
+	/// <param name="ct">A cancellation token to signal the task to abort early</param>
+	public void TryFindPaths(Vector3[] points, float[,] edges, int goalID, CancellationToken ct)
 	{
 		// This is an evil hack because Unity doesn't natively support exceptions on background threads.
 		// If an exception is encountered when trying to find paths, this will catch it and store the exception,
@@ -28,7 +29,7 @@ public class Pathfinder
 
 		try
 		{
-			FindPaths(points, edges, ct);
+			FindPaths(points, edges, goalID, ct);
 		}
 		catch (Exception e)
 		{
@@ -38,19 +39,18 @@ public class Pathfinder
 
 	/// <summary>
 	/// Finds the shortest path from every point in the PRM to the goal.
-	/// The goal is assumed to be the first node in the list of points.
 	/// </summary>
 	/// <param name="points">A list of points in the PRM</param>
 	/// <param name="edges">A matrix of edges in the PRM</param>
-	/// <param name="ct">A cancellation token to signal the task to abort early.</param>
-	private void FindPaths(Vector3[] points, float[,] edges, CancellationToken ct)
+	/// <param name="goalID">The index of the goal point in the points vector</param>
+	/// <param name="ct">A cancellation token to signal the task to abort early</param>
+	private void FindPaths(Vector3[] points, float[,] edges, int goalID, CancellationToken ct)
 	{
-		Debug.Log("Pathfind Begun");
 		Stopwatch sw = Stopwatch.StartNew();
 
 		var len = points.Length;
 		var openList = new PriorityQueue(len/2);
-		openList.Add(new QueueNode(points[0], 0, null, 0));
+		openList.Add(new QueueNode(points[goalID], 0, null, goalID));
 
 		var closedList = new ClosedList(len);
 
@@ -58,7 +58,6 @@ public class Pathfinder
 		{
 			if (ct.IsCancellationRequested)
 			{
-				Debug.Log("Pathfind Cancelled");
 				throw new TaskCanceledException();
 			}
 			

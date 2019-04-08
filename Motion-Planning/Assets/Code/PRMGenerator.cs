@@ -61,6 +61,7 @@ public class PRMGenerator : MonoBehaviour {
 	private Task _pathfindTask;
 	private CancellationTokenSource cts = new CancellationTokenSource();
 	private Boolean _firstPath = true;
+	private int _goalIndex = 0;
 	private PathNode[] _finalPaths;
 	private float _finalPathMaxDepth;
 
@@ -178,6 +179,7 @@ public class PRMGenerator : MonoBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
+			_finalPaths = null;
 			if (_pathfindTask != null && !_pathfindTask.IsCompleted)
 			{
 				cts.Cancel();
@@ -185,14 +187,28 @@ public class PRMGenerator : MonoBehaviour {
 				cts.Dispose();
 				cts = new CancellationTokenSource();
 			}
+
+			if (!_firstPath)
+			{
+				int rnd;
+				do
+				{
+					rnd = Random.Range(0, _prmPoints.Count - 1);
+				} while (rnd == _goalIndex);
+
+				_goalIndex = rnd;
+			}
 			
 			_pathfinder = new Pathfinder();
-			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges, cts.Token));
+			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges, _goalIndex, cts.Token));
 			_pathfindTask.Start();
+
+			_firstPath = false;
 		}
 
 		if (_pathfindTask != null && _pathfindTask.IsCompleted && _pathfinder.Error == null)
 		{
+			endLoc.position = _prmPoints[_goalIndex];
 			_finalPaths = _pathfinder.Results.ToArray();
 			_finalPathMaxDepth =
 				_finalPaths.Aggregate(0.0f, (max, next) => next.TotalPathDist > max ? next.TotalPathDist : max);
