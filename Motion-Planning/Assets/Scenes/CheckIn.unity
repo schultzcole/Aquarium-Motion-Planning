@@ -143,14 +143,14 @@ MonoBehaviour:
   goalLoc: {fileID: 912902344}
   agentPrefab: {fileID: 1518970272185878, guid: 262cb938ccd69cb48a7cecaab53cc637,
     type: 2}
-  agentCount: 100
+  agentCount: 200
   left: -10
   right: 10
   front: -10
   back: 10
   top: 20
   bottom: 0
-  numPoints: 3000
+  numPoints: 1500
   numPointCandidates: 5
   maxPRMConnectionDistance: 7
 --- !u!4 &448074562

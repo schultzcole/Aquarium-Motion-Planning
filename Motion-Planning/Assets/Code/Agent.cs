@@ -13,7 +13,7 @@ namespace Code
 		private static List<Agent> _agents = new List<Agent>();
 		private static Collider[] _obstacles;
 		
-		[FormerlySerializedAs("speed")] [SerializeField] private float maxSpeed;
+		[SerializeField] private float maxSpeed;
 		[SerializeField] private float angularAcceleration;
 		[SerializeField] private float maxAcceleration;
 		[SerializeField] private float velocityDamping;
@@ -31,7 +31,7 @@ namespace Code
 		[SerializeField] private float obstacleSlideStrength = 1;
 		[SerializeField] private float centeringStrength = 1;
 		
-		private Rigidbody rb;
+		private Rigidbody _rb;
 
 		private PRMGenerator _prmGen;
 
@@ -46,7 +46,7 @@ namespace Code
 			}
 			
 			_agents.Add(this);
-			rb = GetComponent<Rigidbody>();
+			_rb = GetComponent<Rigidbody>();
 			_radius = transform.localScale.x / 2;
 		}
 
@@ -59,10 +59,10 @@ namespace Code
 		{
 			var dir = _prmGen.QueryGradientField(transform.position);
 			
-			Vector3 target = rb.velocity * (1-velocityDamping);
+			Vector3 target = _rb.velocity * (1-velocityDamping);
 			if (dir.HasValue)
 			{
-				 target = Vector3.RotateTowards(rb.velocity, dir.Value.normalized * maxSpeed, angularAcceleration,
+				 target = Vector3.RotateTowards(_rb.velocity, dir.Value.normalized * maxSpeed, angularAcceleration,
 					maxAcceleration);
 			}
 
@@ -88,7 +88,7 @@ namespace Code
 
 				if (dist < alignmentDist * _radius)
 				{
-					alignment += other.rb.velocity;
+					alignment += other._rb.velocity;
 					alignNeighbors++;
 				}
 
@@ -124,7 +124,7 @@ namespace Code
 					{
 						if (toPointDist > 0)
 						{
-							obstacleAvoid += toPoint * -1 / (toPointDist * toPointDist * toPointDist);
+							obstacleAvoid += toPoint * -1 / toPointDist;
 						}
 						obstacleSlide += (target - toPoint * Vector3.Dot(target, toPoint.normalized)) * obstacleSlideStrength;
 					}
@@ -137,7 +137,7 @@ namespace Code
 			             cohesion * cohesionStrength + obstacleAvoid * obstacleAvoidStrength +
 			             obstacleSlide + toCenter * centeringStrength;
 			
-			rb.velocity = Vector3.ClampMagnitude(newVel, maxSpeed);
+			_rb.velocity = Vector3.ClampMagnitude(newVel, maxSpeed);
 		}
 	}
 }
