@@ -22,3 +22,9 @@ Full write up at https://sites.google.com/umn.edu/schu2808csci5611submissions/hw
 
 ## Settings
 The PRM and path debug display uses editor Gizmos. By default this isn't enabled in game view, but it can be enabled by clicking the Gizmos button in th game view header.
+
+
+## Other Notes
+On first importing the project, you may get a warning that Blender could not be found. This is normal if you do not have Blender installed, or if Blender is not the default program for opening .blend files. This is fine, as there is already a fish.fbx exported.
+
+There may also be several warnings saying that fields are never assigned to. These fields are set in the Unity editor rather than in code so the warnings are safe to ignore.
