@@ -191,11 +191,11 @@ MonoBehaviour:
   maxAcceleration: 0.5
   velocityDamping: 0.01
   separationDist: 1.5
-  alignmentDist: 5
+  alignmentDist: 10
   cohesionDist: 3
   obstacleDist: 10
   separationStrength: 3
-  alignmentStrength: 0.1
+  alignmentStrength: 0.15
   cohesionStrength: 0
   obstacleAvoidStrength: 0.3
   obstacleSlideStrength: 0.02
