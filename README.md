@@ -1,6 +1,6 @@
 # 5611-A3-Motion-Planning
 
-Unity version 2018.3.12f1. Should work on versions at least as far back as 2018.2.16f1, probably any 2018.x.x or newer version should work. Only tested on Windows. Should work out of the box on Mac, might work on the beta linux Unity editor.
+Unity version 2018.3.12f1. Only tested on Windows. Should work out of the box on Mac, might work on the beta linux Unity editor.
 
 Full write up at https://sites.google.com/umn.edu/schu2808csci5611submissions/hw3-flocking-and-pathfinding
 
