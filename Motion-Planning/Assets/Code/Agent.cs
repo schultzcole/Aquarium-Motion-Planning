@@ -138,6 +138,8 @@ public class Agent : MonoBehaviour
 		{
 			foreach (var obs in _obstacles)
 			{
+				if (obs is MeshCollider && !(obs as MeshCollider).convex) continue;
+			
 				var obsTransform = obs.transform;
 				var closestPoint = Physics.ClosestPoint(myPos, obs, obsTransform.position,
 					obsTransform.rotation);
