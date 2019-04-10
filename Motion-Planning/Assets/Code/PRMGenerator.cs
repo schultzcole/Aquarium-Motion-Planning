@@ -31,7 +31,7 @@ public class PRMGenerator : MonoBehaviour
 	[SerializeField] private float back;
 	[SerializeField] private float top;
 	[SerializeField] private float bottom;
-
+	
 	// Bounds adjusted for agent radius.
 	private float _safeLeft;
 	private float _safeRight;
