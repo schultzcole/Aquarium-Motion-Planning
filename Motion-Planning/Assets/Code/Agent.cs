@@ -11,6 +11,11 @@ namespace Code
 	public class Agent : MonoBehaviour
 	{
 		private static List<Agent> _agents = new List<Agent>();
+		private int _agentId;
+		private float _randomOffsetX;
+		private float _randomOffsetY;
+		private float _randomOffsetZ;
+		
 		private static Collider[] _obstacles;
 		
 		[SerializeField] private float maxSpeed;
@@ -30,6 +35,10 @@ namespace Code
 		[SerializeField] private float obstacleAvoidStrength = 1;
 		[SerializeField] private float obstacleSlideStrength = 1;
 		[SerializeField] private float centeringStrength = 1;
+		[SerializeField] private float oscillationStrength = 1;
+		[SerializeField] private float oscillationTimeScale = 1;
+		[SerializeField] private float randomStrength = 1;
+		[SerializeField] private float randomTimeScale = 1;
 		
 		private Rigidbody _rb;
 
@@ -46,6 +55,12 @@ namespace Code
 			}
 			
 			_agents.Add(this);
+			_agentId = _agents.Count;
+			
+			_randomOffsetX = Random.Range(1.0f, 50.0f);
+			_randomOffsetY = Random.Range(1.0f, 50.0f);
+			_randomOffsetZ = Random.Range(1.0f, 50.0f);
+			
 			_rb = GetComponent<Rigidbody>();
 			_radius = transform.localScale.x / 2;
 		}
@@ -57,6 +72,8 @@ namespace Code
 
 		private void Update()
 		{
+			if (Math.Abs(Time.timeScale) < .01) return;
+			
 			var dir = _prmGen.QueryGradientField(transform.position);
 			
 			Vector3 target = _rb.velocity * (1-velocityDamping);
@@ -73,12 +90,23 @@ namespace Code
 			int cohesionNeighbors = 0;
 			Vector3 obstacleAvoid = Vector3.zero;
 			Vector3 obstacleSlide = Vector3.zero;
+			Vector3 oscillation = transform.right * Mathf.Sin(Time.time * oscillationTimeScale + _randomOffsetX);
 
+			// The intent of using GetHashCode on the agent ID is to make it so that agents with similar IDs do not
+			// necessarily have similar random vectors.
+			Vector3 random = Vector3.ClampMagnitude(new Vector3(
+					Mathf.PerlinNoise(Time.time * randomTimeScale + _randomOffsetX, _agentId.GetHashCode()) * 2 - 1,
+					Mathf.PerlinNoise(Time.time * randomTimeScale + _randomOffsetY, (_agentId + 7).GetHashCode()) * 2 - 1,
+					Mathf.PerlinNoise(Time.time * randomTimeScale + _randomOffsetZ, (_agentId - 11).GetHashCode()) * 2 - 1
+				) * maxSpeed, maxSpeed);
+
+			var myPos = transform.position;
+			
 			foreach (var other in _agents)
 			{
 				if (other == this) continue;
 
-				var toOther = other.transform.position - transform.position;
+				var toOther = other.transform.position - myPos;
 				var dist = toOther.magnitude;
 
 				if (dist < separationDist * _radius && dist > 0)
@@ -114,7 +142,6 @@ namespace Code
 				foreach (var obs in _obstacles)
 				{
 					var obsTransform = obs.transform;
-					var myPos = transform.position;
 					var closestPoint = Physics.ClosestPoint(myPos, obs, obsTransform.position,
 						obsTransform.rotation);
 
@@ -131,13 +158,23 @@ namespace Code
 				}
 			}
 
-			var toCenter = new Vector3(0, 10, 0) - transform.position;
+			var toCenter = new Vector3(0, 10, 0) - myPos;
 
-			var newVel = target + separation * separationStrength + alignment * alignmentStrength +
-			             cohesion * cohesionStrength + obstacleAvoid * obstacleAvoidStrength +
-			             obstacleSlide + toCenter * centeringStrength;
+			var newVel = target +
+			             separation * separationStrength +
+			             alignment * alignmentStrength +
+			             cohesion * cohesionStrength +
+			             obstacleAvoid * obstacleAvoidStrength +
+			             obstacleSlide +
+			             toCenter * centeringStrength +
+			             oscillation * oscillationStrength +
+			             random * randomStrength;
+
+//			newVel = random;
 			
 			_rb.velocity = Vector3.ClampMagnitude(newVel, maxSpeed);
+			
+			transform.LookAt(myPos + _rb.velocity.normalized, Vector3.up);
 		}
 	}
 }
