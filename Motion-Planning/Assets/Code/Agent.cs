@@ -7,7 +7,13 @@ using Random = UnityEngine.Random;
 public class Agent : MonoBehaviour
 {
 	private static List<Agent> _agents = new List<Agent>();
+	// Position of this agent in the static _agents array. Used to provide unique results for the random impulse
 	private int _agentId;
+	
+	// Random time offsets for generating random impulse.
+	// Without this, every agent changes random direction at the same time.
+	// We have separate offsets for each axis so that random changes in
+	// each axis don't necessarily change at the same time.
 	private float _randomOffsetX;
 	private float _randomOffsetY;
 	private float _randomOffsetZ;
@@ -62,6 +68,10 @@ public class Agent : MonoBehaviour
 		_radius = transform.localScale.x / 2;
 	}
 
+	/// <summary>
+	/// Initializes the agent with the PRM generator, so the agent can query the PRM for target direction
+	/// </summary>
+	/// <param name="prmGen">The PRM this agent should query for paths.</param>
 	public void Init(PRMGenerator prmGen)
 	{
 		_prmGen = prmGen;
@@ -80,6 +90,20 @@ public class Agent : MonoBehaviour
 				maxAcceleration);
 		}
 
+		Vector3 newVel = CalcBoidsImpulses(target) + target;
+		
+		_rb.velocity = Vector3.ClampMagnitude(newVel, maxSpeed);
+		
+		transform.LookAt(transform.position + _rb.velocity.normalized, Vector3.up);
+	}
+
+	/// <summary>
+	/// Calculates the boid impulses on this agent, given a target velocity
+	/// </summary>
+	/// <param name="target">Target velocity</param>
+	/// <returns>accumulated </returns>
+	private Vector3 CalcBoidsImpulses(Vector3 target)
+	{
 		Vector3 separation = Vector3.zero;
 		Vector3 alignment = Vector3.zero;
 		int alignNeighbors = 0;
@@ -91,14 +115,16 @@ public class Agent : MonoBehaviour
 
 		// The intent of using GetHashCode on the agent ID is to make it so that agents with similar IDs do not
 		// necessarily have similar random vectors.
-		Vector3 random = Vector3.ClampMagnitude(new Vector3(
+		Vector3 random = Vector3.ClampMagnitude(
+			new Vector3(
 				Mathf.PerlinNoise(Time.time * randomTimeScale + _randomOffsetX, _agentId.GetHashCode()) * 2 - 1,
 				Mathf.PerlinNoise(Time.time * randomTimeScale + _randomOffsetY, (_agentId + 7).GetHashCode()) * 2 - 1,
-				Mathf.PerlinNoise(Time.time * randomTimeScale + _randomOffsetZ, (_agentId - 11).GetHashCode()) * 2 - 1
-			) * maxSpeed, maxSpeed);
+				Mathf.PerlinNoise(Time.time * randomTimeScale + _randomOffsetZ, (_agentId - 11).GetHashCode()) * 2 - 1)
+			* maxSpeed, maxSpeed
+		);
 
 		var myPos = transform.position;
-		
+
 		foreach (var other in _agents)
 		{
 			if (other == this) continue;
@@ -128,7 +154,7 @@ public class Agent : MonoBehaviour
 		{
 			alignment /= alignNeighbors;
 		}
-		
+
 		if (cohesionNeighbors > 0)
 		{
 			cohesion /= cohesionNeighbors;
@@ -139,7 +165,7 @@ public class Agent : MonoBehaviour
 			foreach (var obs in _obstacles)
 			{
 				if (obs is MeshCollider && !(obs as MeshCollider).convex) continue;
-			
+
 				var obsTransform = obs.transform;
 				var closestPoint = Physics.ClosestPoint(myPos, obs, obsTransform.position,
 					obsTransform.rotation);
@@ -152,15 +178,16 @@ public class Agent : MonoBehaviour
 					{
 						obstacleAvoid += toPoint * -1 / toPointDist;
 					}
-					obstacleSlide += (target - toPoint * Vector3.Dot(target, toPoint.normalized)) * obstacleSlideStrength;
+
+					obstacleSlide += (target - toPoint * Vector3.Dot(target, toPoint.normalized)) *
+					                 obstacleSlideStrength;
 				}
 			}
 		}
 
 		var toCenter = new Vector3(0, 10, 0) - myPos;
 
-		var newVel = target +
-		             separation * separationStrength +
+		var newVel = separation * separationStrength +
 		             alignment * alignmentStrength +
 		             cohesion * cohesionStrength +
 		             obstacleAvoid * obstacleAvoidStrength +
@@ -168,11 +195,7 @@ public class Agent : MonoBehaviour
 		             toCenter * centeringStrength +
 		             oscillation * oscillationStrength +
 		             random * randomStrength;
-
-//			newVel = random;
 		
-		_rb.velocity = Vector3.ClampMagnitude(newVel, maxSpeed);
-		
-		transform.LookAt(myPos + _rb.velocity.normalized, Vector3.up);
+		return newVel;
 	}
 }

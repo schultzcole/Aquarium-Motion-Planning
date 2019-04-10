@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-
+/// <summary>
+/// An element of the PriorityQueue for pathfinding
+/// </summary>
 public class QueueNode
 {
 	public Vector3 Position;

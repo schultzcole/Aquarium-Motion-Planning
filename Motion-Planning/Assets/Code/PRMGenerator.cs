@@ -4,10 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Code;
-using TMPro;
 using UnityEngine;
-using UnityEngine.Experimental.UIElements;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
@@ -53,14 +50,15 @@ public class PRMGenerator : MonoBehaviour
 	private Boolean _drawPaths = true;
 	
 	private List<Vector3> _prmPoints = new List<Vector3>();
-	private OctTreeNode _octTree;
 	private Single[,] _prmEdges;
 	private int _numEdges;
 
 	private Pathfinder _pathfinder;
 	private Task _pathfindTask;
 	private CancellationTokenSource _cts = new CancellationTokenSource();
+	
 	private Boolean _firstPath = true;
+	// The index into the _prmPoints List of the goal.
 	private int _goalIndex = 0;
 	
 	// Array of path nodes, indicating the direction to the next node closer to the goal. In the same order as _prmPoints.
@@ -189,32 +187,36 @@ public class PRMGenerator : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Returns a direction which indicates the direction an agent should travel from the given point to get to the goal.
+	/// Returns a vector which indicates the direction an agent should travel from the given point to get to the goal.
 	/// </summary>
 	/// <param name="point">The point at which to query</param>
-	/// <returns>A vector indicating the direction to travel to reach the goal from the given point, or null if no path exists.</returns>
+	/// <returns>A vector indicating the direction to travel to reach the goal from the given point,
+	/// or null if no path exists.</returns>
 	public Vector3? QueryGradientField(Vector3 point)
 	{
 		if (_finalPaths == null) return null;
 
+		// If we can see the goal, just go straight to it.
 		if (!Physics.Linecast(point, _prmPoints[_goalIndex], LayerMask.GetMask("Obstacles")))
 		{
 			return Vector3.ClampMagnitude(_prmPoints[_goalIndex] - point, 1);
 		}
 
 		int numToSample = 3;
-		float sampleRadius = 5;
+		float sqrSampleRadius = 5;
 
+		// Get a list of points within our sample radius.
 		List<int> inRange = new List<int>();
 		for (int i = 0; i < _prmPoints.Count; i++)
 		{
 			var sqrDist = (_prmPoints[i] - point).sqrMagnitude;
-			if (sqrDist < sampleRadius)
+			if (sqrDist < sqrSampleRadius)
 			{
 				inRange.Add(i);
 			}
 		}
 
+		// Loop through points within range and find the closest `numToSample` points
 		int[] nearestIndex = (from _ in Enumerable.Range(0, numToSample) select -1).ToArray();
 		float[] nearestDist = (from _ in Enumerable.Range(0, numToSample) select float.PositiveInfinity).ToArray();
 		foreach (var i in inRange)
@@ -236,6 +238,7 @@ public class PRMGenerator : MonoBehaviour
 			}
 		}
 
+		// Exclude points not visible from input point, and sum their directions.
 		var totalDir = nearestIndex
 			.Where(cand => cand != -1 && !Physics.Linecast(point, _prmPoints[cand], LayerMask.GetMask("Obstacles")))
 			.Aggregate(new Tuple<Vector3, int>(Vector3.zero, 0),
@@ -259,8 +262,10 @@ public class PRMGenerator : MonoBehaviour
 			else _drawPaths = !_drawPaths;
 		}
 
+		// Initiates Pathfinding
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
+			// if we are already currently searching for a path, cancel it
 			_finalPaths = null;
 			if (_pathfindTask != null && !_pathfindTask.IsCompleted)
 			{
@@ -270,6 +275,7 @@ public class PRMGenerator : MonoBehaviour
 				_cts = new CancellationTokenSource();
 			}
 
+			// if this is not the first time we're pathfinding, choose a new random goal
 			if (!_firstPath)
 			{
 				int rnd;
@@ -281,6 +287,7 @@ public class PRMGenerator : MonoBehaviour
 				_goalIndex = rnd;
 			}
 			
+			// Start the pathfinding task in the background
 			_pathfinder = new Pathfinder();
 			_pathfindTask = new Task(() => _pathfinder.TryFindPaths(_prmPoints.ToArray(), _prmEdges, _goalIndex, _cts.Token));
 			_pathfindTask.Start();
@@ -288,6 +295,7 @@ public class PRMGenerator : MonoBehaviour
 			_firstPath = false;
 		}
 
+		// each frame, poll the pathfinding task to see if it's done, and dispose of the pathfinding task handle
 		if (_pathfindTask != null && _pathfindTask.IsCompleted && _pathfinder.Error == null)
 		{
 			goalLoc.position = _prmPoints[_goalIndex];
@@ -301,6 +309,9 @@ public class PRMGenerator : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Draw debug lines to visualize PRM and paths.
+	/// </summary>
 	private void OnDrawGizmos()
 	{
 		if (!Application.isPlaying) return;

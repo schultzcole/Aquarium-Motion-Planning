@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using Code;
-using UnityEngine;
 
 /// <summary>
-/// A priority queue, in which elements are added and can be removed in order of priority, as defined by TComparer.
+/// A priority queue, in which elements are added and can be removed in order of priority.
 /// </summary>
 public class PriorityQueue
 {

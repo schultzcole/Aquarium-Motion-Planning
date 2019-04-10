@@ -7,18 +7,23 @@ using Debug = UnityEngine.Debug;
 
 public class Pathfinder
 {
+	/// <summary>
+	/// Stores the final results after completing the pathfinding operation.
+	/// </summary>
 	public PathNode[] Results;
 
+	/// <summary>
+	/// Stores an exception if one occurs during operation.
+	/// </summary>
 	public Exception Error;
 
 	/// <summary>
 	/// Tries to find the shortest path from every point in the PRM to the goal.
-	/// The goal is assumed to be the first node in the list of points.
 	/// If an exception is encountered it will store it in the "error" field.
 	/// </summary>
 	/// <param name="points">A list of points in the PRM</param>
 	/// <param name="edges">A matrix of edges in the PRM</param>
-	/// <param name="goalID">The index of the goal point in the points vector</param>
+	/// <param name="goalID">The index of the goal point in the points array</param>
 	/// <param name="ct">A cancellation token to signal the task to abort early</param>
 	public void TryFindPaths(Vector3[] points, float[,] edges, int goalID, CancellationToken ct)
 	{
@@ -42,13 +47,16 @@ public class Pathfinder
 	/// </summary>
 	/// <param name="points">A list of points in the PRM</param>
 	/// <param name="edges">A matrix of edges in the PRM</param>
-	/// <param name="goalID">The index of the goal point in the points vector</param>
+	/// <param name="goalID">The index of the goal point in the points array</param>
 	/// <param name="ct">A cancellation token to signal the task to abort early</param>
 	private void FindPaths(Vector3[] points, float[,] edges, int goalID, CancellationToken ct)
 	{
 		Stopwatch sw = Stopwatch.StartNew();
 
 		var len = points.Length;
+
+		// Standard Djikstra's algorithm
+		
 		var openList = new PriorityQueue(len/2);
 		openList.Add(new QueueNode(points[goalID], 0, null, goalID));
 
@@ -56,12 +64,13 @@ public class Pathfinder
 
 		while (!openList.IsEmpty())
 		{
+			// If the background thread is cancelled, abort operation.
 			if (ct.IsCancellationRequested)
 			{
 				throw new TaskCanceledException();
 			}
 			
-			var current = openList.Pop();
+			QueueNode current = openList.Pop();
 			closedList.Add(current);
 
 			for (int nextIdx = 0; nextIdx < len; nextIdx++)
