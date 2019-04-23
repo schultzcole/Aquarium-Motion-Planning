@@ -4,10 +4,10 @@ Unity version 2018.3.12f1. Only tested on Windows. Should work out of the box on
 
 ## Overview
 
-[S-Path Demo<br> <img src="https://img.youtube.com/vi/8uT3X8Yq2lE/maxresdefault.jpg" width=500>](https://youtu.be/8uT3X8Yq2lE)
+[S-Path Demo Video<br> <img src="https://img.youtube.com/vi/8uT3X8Yq2lE/maxresdefault.jpg" width=500>](https://youtu.be/8uT3X8Yq2lE)
 
 
-[Checkerboard Demo<br> <img src="https://img.youtube.com/vi/XsssKV2h3aU/maxresdefault.jpg" width=500>](https://youtu.be/XsssKV2h3aU)
+[Checkerboard Demo Video<br> <img src="https://img.youtube.com/vi/XsssKV2h3aU/maxresdefault.jpg" width=500>](https://youtu.be/XsssKV2h3aU)
 
 This is my 3D simulation of fish in an aquarium, implemented in Unity 3D (version 2018.3.12f1).
 Obstacles can technically be any 3D mesh, however with some caveats (explained below).
@@ -49,7 +49,7 @@ A final, purely cosmetic oscillation impulse is added, which wiggles the agent s
 There are a few points where the boids impulses make the motion appear non-optimal, especially when the goal is near an obstacle or the boundaries, evidenced by the agents alternating between moving towards and away from the goal (this is especially noticeable in the cylinder demo video I think). While this is clearly non-optimal, I do think it feels natural for a school fish, so I am not too displeased with it
 With the narrow corridor scenario I was attempting to create a scenario where the obstacle avoidance term would cause issues, but it actually ended up working surprisingly well.
 
-### Other demos
+### Other demo videos
 
 - [Cylinder Demo](https://www.youtube.com/watch?v=ySiT1d9AjxM)
 - [Narrow Corridor Demo](https://www.youtube.com/watch?v=Acqr9srtxZw)
