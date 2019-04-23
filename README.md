@@ -19,7 +19,7 @@ The PRM nodes and edges are generated statically when the simulation begins.
 For a typical level, generating 1000 PRM nodes takes about .2 seconds, and checking visibility and connecting edges between points takes about .1 seconds.
 Points are generated in approximate poisson disc distribution, using Mitchell's best candidate algorithm.
 
-Rather than pathfinding from each agent to the goal to develop a unique path for each agent, I instead use Djikstra's algorithm to search in reverse from the goal to find all optimal paths from the goal to every PRM node.
+Rather than pathfinding from each agent to the goal using an algorithm like A* to develop a unique path for each agent, I instead use Djikstra's algorithm to search in reverse from the goal to find all optimal paths from the goal to every PRM node.
 In this case, Djikstra's is a better choice than A*, because it will find optimal paths to every node, rather than an optimal path to a particular goal node.
 The user can press the spacebar to choose a new random goal at runtime, and the search is run in a background thread to maintain a reasonable framerate.
 On a 1000 node PRM, it takes about 100-150ms to run the search.
@@ -35,13 +35,13 @@ As mentioned, agents use boids for flocking behavior.
 This includes a target vector (the optimal direction to the goal from the PRM), as well as the typical 3 boids impulses: separation, alignment, and cohesion, but it also includes a couple of custom terms: obstacle avoidance, obstacle "slide", a random impulse, and a centering impulse to keep focus the agents in the center of the bounds when they do not have a target.
 
 The obstacle avoidance impulse simply adds a bit of velocity pointing away from the nearest point on every obstacle within a given radius of the agent.
-The obstacle "slide" impulse acts as a multiplier for the component of the velocity parallel to an obstacle.
+The obstacle "slide" impulse acts as a multiplier for the component of the target velocity parallel to an obstacle.
 This encourages agents to move along obstacles rather than "bounce" off of them repeatedly.
 The obstacle avoidance and slide terms are not available for arbitrary mesh obstacles, though they are available for strictly convex mesh obstacles as well as primitive obstacles such as boxes, spheres, and capsules.
 This does cause some issues for non-convex obstacles, as seen in the case of the monkey head demo video below;
 agents often catch on edges of the mesh briefly before resuming a more normal path.
 
-The random impulse uses perlin noise to inject continuous, fluid random motion into the paths of the agents.
+The random impulse uses perlin noise to inject continuous, fluid random motion into the velocities of the agents.
 This produces much more lifelike motion in the flock as without the random motion, the alignment term dominated and all of the agents eventually became one cohesive ball.
 
 A final, purely cosmetic oscillation impulse is added, which wiggles the agent side to side as it moves, and, in my opinion, provides a pretty convincing swimming animation for the "fish".
@@ -75,10 +75,14 @@ With the narrow corridor scenario I was attempting to create a scenario where th
 
 ## Settings
 
-The PRM and path debug display uses editor Gizmos. By default this isn't enabled in game view, but it can be enabled by clicking the Gizmos button in th game view header.
+The PRM and path debug display uses editor Gizmos.
+By default this isn't enabled in game view, but it can be enabled by clicking the Gizmos button in the game view header.
 
 ## Other Notes
 
-On first importing the project, you may get a warning that Blender could not be found. This is normal if you do not have Blender installed, or if Blender is not the default program for opening .blend files. This is fine, as there is already a fish.fbx exported.
+On first importing the project, you may get a warning that Blender could not be found.
+This is normal if you do not have Blender installed, or if Blender is not the default program for opening .blend files.
+This is fine, as there is already a fish.fbx exported.
 
-There may also be several warnings saying that fields are never assigned to. These fields are set in the Unity editor rather than in code so the warnings are safe to ignore.
+There may also be several warnings saying that fields are never assigned to.
+These fields are set in the Unity editor rather than in code so the warnings are safe to ignore.
