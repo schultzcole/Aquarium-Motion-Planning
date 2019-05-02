@@ -1,4 +1,4 @@
-# 5611-A3-Motion-Planning
+# Aquarium Motion Planning
 
 Unity version 2018.3.12f1. Only tested on Windows. Should work out of the box on Mac, might work on the beta Linux Unity editor.
 
