@@ -11,7 +11,7 @@ Unity version 2018.3.12f1. Only tested on Windows. Should work out of the box on
 
 This is my 3D simulation of fish in an aquarium, implemented in Unity 3D (version 2018.3.12f1).
 Obstacles can technically be any 3D mesh, however with some caveats (explained below).
-The "fish" agents use the Boids algorithm for flocking behavior, and the simulation uses a probabilistic road map for pathfinding.
+The "fish" agents use the Boids algorithm for flocking behavior, and the simulation uses a probabilistic road map (PRM) for pathfinding.
 
 ### Roadmap and Pathfinding
 
@@ -46,7 +46,8 @@ This produces much more lifelike motion in the flock as without the random motio
 
 A final, purely cosmetic oscillation impulse is added, which wiggles the agent side to side as it moves, and, in my opinion, provides a pretty convincing swimming animation for the "fish".
 
-There are a few points where the boids impulses make the motion appear non-optimal, especially when the goal is near an obstacle or the boundaries, evidenced by the agents alternating between moving towards and away from the goal (this is especially noticeable in the cylinder demo video I think). While this is clearly non-optimal, I do think it feels natural for a school fish, so I am not too displeased with it
+There are a few points where the boids impulses make the motion appear non-optimal, especially when the goal is near an obstacle or the boundaries, evidenced by the agents alternating between moving towards and away from the goal (this is especially noticeable in the cylinder demo video I think). While this is clearly non-optimal, I do think it feels natural for a school fish, so I am not too displeased with it.
+
 With the narrow corridor scenario I was attempting to create a scenario where the obstacle avoidance term would cause issues, but it actually ended up working surprisingly well.
 
 ### Other demo videos
@@ -60,7 +61,7 @@ With the narrow corridor scenario I was attempting to create a scenario where th
 ### Unity Hub
 
 1. Clone the repo.
-2. Click "Open".
+2. In Unity Hub, click "Open".
 3. Navigate to `\Aquarium-Motion-Planning` and select the `Motion-Planning` directory and open.
 4. Wait for asset import and compilation.
 5. Open desired example scene and run.
@@ -68,7 +69,7 @@ With the narrow corridor scenario I was attempting to create a scenario where th
 ### Unity Editor
 
 1. Clone the repo.
-2. File > "Open Project...".
+2. In Unity Editor, click File > "Open Project...".
 3. Navigate to `\Aquarium-Motion-Planning` and select the `Motion-Planning` directory and open.
 4. Wait for asset import and compilation.
 5. Open desired example scene and run.
