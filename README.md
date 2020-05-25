@@ -87,3 +87,9 @@ This is fine, as there is already a fish.fbx exported.
 
 There may also be several warnings saying that fields are never assigned to.
 These fields are set in the Unity editor rather than in code so the warnings are safe to ignore.
+
+## License
+
+This code is released under the CC-BY-4.0 license:
+
+[![CC-BY-4.0](https://licensebuttons.net/l/by/4.0/88x31.png)](http://creativecommons.org/licenses/by/4.0/)
